@@ -1,0 +1,58 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int            @id
+  assistants    Assistant[]
+  conversations Conversation[]
+  messages      Message[]
+}
+
+model Assistant {
+  id            Int            @id @default(autoincrement())
+  assistantId   String         @unique
+  name          String
+  userId        Int
+  user          User           @relation(fields: [userId], references: [id])
+  conversations Conversation[]
+  messages      Message[]
+}
+
+model Conversation {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  assistantId Int
+  messages    Message[]
+  user        User      @relation(fields: [userId], references: [id])
+  assistant   Assistant @relation(fields: [assistantId], references: [id])
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  userId         Int
+  assistantId    Int
+  role           Role
+  content        String       @db.LongText
+  tokens         Int
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  assistant      Assistant    @relation(fields: [assistantId], references: [id])
+}
+
+enum Role {
+  USER
+  ASSISTANT
+}
