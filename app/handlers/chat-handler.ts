@@ -1,43 +1,30 @@
 import BotContext from "../middlewares/bot-context";
+import { InlineKeyboardButton } from "telegraf/typings/core/types/typegram";
 
 const chatHandler = async (ctx: BotContext) => {
-  const { prisma, openai } = ctx.session;
-  let personalAssistant = await prisma.assistant.findFirst({
-    where: { userId: ctx.message?.from.id },
+  const { prisma } = ctx.session;
+
+  const conversations = await prisma.conversation.findMany({
+    where: { userId: ctx.from?.id },
+    include: { assistant: true },
   });
 
-  if (!personalAssistant) {
-    const newAssistant = await openai.beta.assistants.create({
-      model: "gpt-4o",
-      name: `${ctx.from?.first_name}'s personal assistant`,
-      instructions: `You are a personal assistant to ${ctx.from?.first_name}. You will answer their questions accordingly and address them directly.`,
-    });
+  const buttons: InlineKeyboardButton[][] = [];
+  buttons.push([{ text: "➕ New conversation", callback_data: "conv.new" }]);
+  conversations.forEach((c) =>
+    buttons.push([
+      { text: c.title ?? c.assistant.name, callback_data: `conv.${c.id}` },
+    ])
+  );
 
-    personalAssistant = await prisma.assistant.create({
-      data: {
-        assistantId: newAssistant.id,
-        name:
-          newAssistant.name ?? `${ctx.from?.first_name}'s personal assistant`,
-        user: {
-          connect: { id: ctx.from?.id },
-        },
-      },
-    });
-  }
-
-  const newConversation = await prisma.conversation.create({
-    data: {
-      assistant: {
-        connect: { id: personalAssistant.id },
-      },
-      user: {
-        connect: { id: ctx.from?.id },
-      },
-    },
-  });
-
-  ctx.session.currentConversationId = newConversation.id;
-  return ctx.scene.enter("chatScene");
+  return ctx.reply(
+    conversations.length
+      ? "Here's a list of all your conversations with your assistants."
+      : "You have no previous conversations.",
+    {
+      reply_markup: { inline_keyboard: buttons },
+    }
+  );
 };
 
 export default chatHandler;

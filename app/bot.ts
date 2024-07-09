@@ -7,6 +7,8 @@ import langHandler from "./handlers/lang-handler";
 import chatHandler from "./handlers/chat-handler";
 import voiceHandler from "./handlers/voice-handler";
 import chatScene from "./scenes/chat-scene";
+import { callbackQuery } from "telegraf/filters";
+import convHandler from "./handlers/conv-handler";
 
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 
@@ -20,5 +22,6 @@ bot.help(startHandler);
 bot.command("chat", chatHandler);
 bot.command("voice", voiceHandler);
 bot.command("lang", langHandler);
+bot.on(callbackQuery("data"), convHandler);
 
 export default bot;

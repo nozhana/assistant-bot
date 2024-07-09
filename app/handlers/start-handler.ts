@@ -7,7 +7,7 @@ const startHandler = async (ctx: BotContext) => {
 
   let user = await prisma.user.findUnique({ where: { id } });
   if (!user) {
-    user = await prisma.user.create({ data: { id } });
+    user = await prisma.user.create({ data: { id, firstName: first_name } });
   }
 
   await ctx.replyWithHTML(
@@ -15,7 +15,7 @@ const startHandler = async (ctx: BotContext) => {
 
 Hi, ${first_name}!
 /start or /help — show this message
-/chat <i>Assistant name</i> — Talk to an assistant
+/chat — Talk to an assistant
 /voice — Toggle voice output by default
 /lang — Change UI language
 

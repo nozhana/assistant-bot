@@ -1,8 +1,7 @@
 import { Scenes } from "telegraf";
 import { toFile } from "openai";
 import BotContext from "../middlewares/bot-context";
-import bot from "../bot";
-import { callbackQuery, message } from "telegraf/filters";
+import { message } from "telegraf/filters";
 import { randomUUID } from "crypto";
 import { ChatCompletionMessageParam } from "openai/resources";
 import { Role } from "@prisma/client";
@@ -11,13 +10,13 @@ const chatScene = new Scenes.BaseScene<BotContext>("chatScene");
 
 chatScene.enter(async (ctx) => {
   const { prisma, currentConversationId } = ctx.session;
-  const conversation = await prisma.conversation.findUnique({
+  const conversation = await prisma.conversation.findUniqueOrThrow({
     where: { id: currentConversationId },
     select: { assistant: true },
   });
 
   return ctx.replyWithHTML(
-    `You're now talking to <b>${conversation?.assistant.name}</b>.`
+    `You're now talking to <b>${conversation.assistant.name}</b>.`
   );
 });
 
@@ -112,16 +111,23 @@ chatScene.on(message("text"), async (ctx, next) => {
   }
 
   await ctx.deleteMessage(waitMessage.message_id);
-  return ctx.reply(
-    `${response}\n
-    💸 ${completion.usage?.total_tokens} tokens`
-  );
+  try {
+    return ctx.replyWithMarkdown(
+      `${response}
+💸 **${completion.usage?.total_tokens}** tokens`
+    );
+  } catch (error) {
+    return ctx.reply(
+      `${response}
+💸 ${completion.usage?.total_tokens} tokens`
+    );
+  }
 });
 
 chatScene.on(message("voice"), async (ctx) => {
   const { prisma, openai, currentConversationId } = ctx.session;
   const { file_id } = ctx.message.voice;
-  const fileURL = await bot.telegram.getFileLink(file_id);
+  const fileURL = await ctx.telegram.getFileLink(file_id);
   const res = await fetch(fileURL);
   const blob = await res.blob();
 
@@ -219,10 +225,17 @@ chatScene.on(message("voice"), async (ctx) => {
   }
 
   await ctx.deleteMessage(waitMessage.message_id);
-  return ctx.reply(
-    `${response}\n
-    💸 ${completion.usage?.total_tokens} tokens`
-  );
+  try {
+    return ctx.replyWithMarkdown(
+      `${response}
+💸 **${completion.usage?.total_tokens}** tokens`
+    );
+  } catch (error) {
+    return ctx.reply(
+      `${response}
+💸 ${completion.usage?.total_tokens} tokens`
+    );
+  }
 });
 
 chatScene.command("leave", async (ctx) => {

@@ -9,47 +9,57 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id            Int            @id
+  id            Int            @id @map("_id")
+  firstName     String
   assistants    Assistant[]
   conversations Conversation[]
   messages      Message[]
+
+  @@map("users")
 }
 
 model Assistant {
-  id            Int            @id @default(autoincrement())
-  assistantId   String         @unique
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  serversideId  String         @unique
   name          String
   userId        Int
   user          User           @relation(fields: [userId], references: [id])
   conversations Conversation[]
   messages      Message[]
+
+  @@map("assistants")
 }
 
 model Conversation {
-  id          Int       @id @default(autoincrement())
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String?
   userId      Int
-  assistantId Int
+  assistantId String    @db.ObjectId
   messages    Message[]
   user        User      @relation(fields: [userId], references: [id])
   assistant   Assistant @relation(fields: [assistantId], references: [id])
+
+  @@map("conversations")
 }
 
 model Message {
-  id             Int          @id @default(autoincrement())
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
   userId         Int
-  assistantId    Int
+  assistantId    String       @db.ObjectId
   role           Role
-  content        String       @db.LongText
+  content        String
   tokens         Int
-  conversationId Int
+  conversationId String       @db.ObjectId
   conversation   Conversation @relation(fields: [conversationId], references: [id])
   user           User         @relation(fields: [userId], references: [id])
   assistant      Assistant    @relation(fields: [assistantId], references: [id])
+
+  @@map("messages")
 }
 
 enum Role {

@@ -8,7 +8,7 @@ interface SessionData extends SceneSession {
   prisma: PrismaClient;
   openai: OpenAI;
   isVoiceResponse: boolean;
-  currentConversationId?: number;
+  currentConversationId?: string;
 }
 
 export const defaultSession = () => ({
