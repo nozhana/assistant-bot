@@ -3,7 +3,7 @@ import { toFile } from "openai";
 import BotContext from "../middlewares/bot-context";
 import { callbackQuery, message } from "telegraf/filters";
 import { randomUUID } from "crypto";
-import { ChatCompletionMessageParam } from "openai/resources";
+import { TextContentBlock } from "openai/resources/beta/threads/messages";
 
 const chatScene = new Scenes.BaseScene<BotContext>("chatScene");
 
@@ -47,34 +47,42 @@ chatScene.on(message("text"), async (ctx, next) => {
 
   await ctx.sendChatAction("typing");
 
-  const messages: ChatCompletionMessageParam[] = [];
+  const messages: {
+    role: "user" | "assistant";
+    content: string;
+  }[] = [];
+
   conversation.messages.forEach((m) => {
     messages.push({
       role: m.role === "ASSISTANT" ? "assistant" : "user",
       content: m.content,
-      name: m.role === "ASSISTANT" ? "Assistant" : ctx.from.first_name,
     });
   });
-  const userMessage: ChatCompletionMessageParam = {
+  const userMessage: {
+    role: "user" | "assistant";
+    content: string;
+  } = {
     role: "user",
     content: ctx.message.text,
-    name: ctx.from.first_name,
   };
   messages.push(userMessage);
 
-  const completion = await openai.chat.completions.create({
+  const run = await openai.beta.threads.createAndRunPoll({
+    assistant_id: conversation.assistant.serversideId,
     model: "gpt-4o",
-    messages: messages,
-    user: String(conversation.userId),
+    thread: { messages },
     temperature: 0.7,
-    max_tokens: 512,
+    max_completion_tokens: 512,
   });
 
-  const response = completion.choices[0].message.content;
-  if (!response) {
+  if (run.status !== "completed") {
     await ctx.deleteMessage(waitMessage.message_id);
-    return ctx.reply("No response. Please try again with different wording.");
+    return ctx.reply("Failed to complete thread run. Please try again.");
   }
+
+  const remoteMessages = await openai.beta.threads.messages.list(run.thread_id);
+  const response = (remoteMessages.data[0].content[0] as TextContentBlock)?.text
+    .value;
 
   await prisma.conversation.update({
     where: { id: conversationId },
@@ -85,14 +93,14 @@ chatScene.on(message("text"), async (ctx, next) => {
             {
               role: "USER",
               content: userMessage.content.toString(),
-              tokens: completion.usage?.prompt_tokens ?? 0,
+              tokens: run.usage?.prompt_tokens ?? 0,
               userId: conversation.userId,
               assistantId: conversation.assistantId,
             },
             {
               role: "ASSISTANT",
               content: response,
-              tokens: completion.usage?.completion_tokens ?? 0,
+              tokens: run.usage?.completion_tokens ?? 0,
               userId: conversation.userId,
               assistantId: conversation.assistantId,
             },
@@ -112,14 +120,14 @@ chatScene.on(message("text"), async (ctx, next) => {
         {
           role: "system",
           content:
-            "You are a conversation naming assistant. You are given a conversation between a user and an AI assistant. Your job is to come up with a title for this conversation that is at most 24 characters. Name this conversation.",
+            "You are a conversation naming assistant. You are given a conversation between a user and an AI assistant. Your job is to come up with a title for this conversation that is at most 36 characters.",
         },
-        userMessage,
-        completion.choices[0].message,
+        ...messages,
+        { role: "assistant", content: response },
       ],
     });
     let titles = nameCompletion.choices.filter(
-      (v) => (v.message.content?.length ?? 100) <= 24
+      (v) => (v.message.content?.length ?? 100) <= 36
     );
 
     if (titles.length) {
@@ -136,7 +144,7 @@ chatScene.on(message("text"), async (ctx, next) => {
   if (ctx.session.settings.isVoiceResponse) {
     await ctx.sendChatAction("record_voice");
     const audioRes = await openai.audio.speech.create({
-      input: `${response}\nThis prompt cost you ${completion.usage?.total_tokens} tokens.`,
+      input: response,
       model: "tts-1",
       voice: ctx.session.settings.voice,
     });
@@ -148,22 +156,30 @@ chatScene.on(message("text"), async (ctx, next) => {
 
     await ctx.deleteMessage(waitMessage.message_id);
     await ctx.sendChatAction("upload_voice");
-    return ctx.replyWithVoice({
-      source: audioBuffer,
-      filename: `${randomUUID()}.ogg`,
-    });
+    return ctx.replyWithVoice(
+      {
+        source: audioBuffer,
+        filename: `${randomUUID()}.ogg`,
+      },
+      {
+        caption: `💸 <b>${run.usage?.total_tokens} tokens</b>`,
+        parse_mode: "HTML",
+      }
+    );
   }
 
   await ctx.deleteMessage(waitMessage.message_id);
   try {
     return ctx.replyWithMarkdown(
       `${response}
-💸 **${completion.usage?.total_tokens} tokens**`
+
+💸 **${run.usage?.total_tokens} tokens**`
     );
   } catch (error) {
     return ctx.reply(
       `${response}
-💸 ${completion.usage?.total_tokens} tokens`
+
+💸 ${run.usage?.total_tokens} tokens`
     );
   }
 });
@@ -192,35 +208,37 @@ chatScene.on(message("voice"), async (ctx) => {
 
   await ctx.sendChatAction("typing");
 
-  const messages: ChatCompletionMessageParam[] = [];
+  const messages: {
+    role: "user" | "assistant";
+    content: string;
+  }[] = [];
+
   conversation.messages.forEach((m) => {
     messages.push({
       role: m.role === "ASSISTANT" ? "assistant" : "user",
       content: m.content,
-      name: m.role === "ASSISTANT" ? "Assistant" : ctx.from.first_name,
     });
   });
-  const userMessage: ChatCompletionMessageParam = {
+  const userMessage: {
+    role: "user" | "assistant";
+    content: string;
+  } = {
     role: "user",
     content: transcription.text,
-    name: ctx.from.first_name,
   };
   messages.push(userMessage);
 
-  const completion = await openai.chat.completions.create({
+  const run = await openai.beta.threads.createAndRunPoll({
+    assistant_id: conversation.assistant.serversideId,
     model: "gpt-4o",
-    messages: messages,
-    user: String(conversation.userId),
+    thread: { messages },
     temperature: 0.7,
-    max_tokens: 512,
+    max_completion_tokens: 512,
   });
 
-  const response = completion.choices[0].message.content;
-
-  if (!response) {
-    await ctx.deleteMessage(waitMessage.message_id);
-    return ctx.reply("No response. Please try again with different wording.");
-  }
+  const remoteMessages = await openai.beta.threads.messages.list(run.thread_id);
+  const response = (remoteMessages.data[0].content[0] as TextContentBlock).text
+    .value;
 
   await prisma.conversation.update({
     where: { id: conversationId },
@@ -231,14 +249,14 @@ chatScene.on(message("voice"), async (ctx) => {
             {
               role: "USER",
               content: userMessage.content.toString(),
-              tokens: completion.usage?.prompt_tokens ?? 0,
+              tokens: run.usage?.prompt_tokens ?? 0,
               userId: conversation.userId,
               assistantId: conversation.assistantId,
             },
             {
               role: "ASSISTANT",
               content: response,
-              tokens: completion.usage?.completion_tokens ?? 0,
+              tokens: run.usage?.completion_tokens ?? 0,
               userId: conversation.userId,
               assistantId: conversation.assistantId,
             },
@@ -261,7 +279,7 @@ chatScene.on(message("voice"), async (ctx) => {
             "You are a conversation naming assistant. You are given a conversation between a user and an AI assistant. Your job is to come up with a title for this conversation that is at most 24 characters. Name this conversation.",
         },
         userMessage,
-        completion.choices[0].message,
+        { role: "assistant", content: response },
       ],
     });
     let titles = nameCompletion.choices.filter(
@@ -282,7 +300,7 @@ chatScene.on(message("voice"), async (ctx) => {
   if (ctx.session.settings.isVoiceResponse) {
     await ctx.sendChatAction("record_voice");
     const audioRes = await openai.audio.speech.create({
-      input: `${response}\nThis prompt cost you ${completion.usage?.total_tokens} tokens.`,
+      input: response,
       model: "tts-1",
       voice: ctx.session.settings.voice,
     });
@@ -294,22 +312,30 @@ chatScene.on(message("voice"), async (ctx) => {
 
     await ctx.deleteMessage(waitMessage.message_id);
     await ctx.sendChatAction("upload_voice");
-    return ctx.replyWithVoice({
-      source: audioBuffer,
-      filename: `${randomUUID()}.ogg`,
-    });
+    return ctx.replyWithVoice(
+      {
+        source: audioBuffer,
+        filename: `${randomUUID()}.ogg`,
+      },
+      {
+        caption: `💸 <b>${run.usage?.total_tokens} tokens</b>`,
+        parse_mode: "HTML",
+      }
+    );
   }
 
   await ctx.deleteMessage(waitMessage.message_id);
   try {
     return ctx.replyWithMarkdown(
       `${response}
-💸 **${completion.usage?.total_tokens} tokens**`
+
+💸 **${run.usage?.total_tokens} tokens**`
     );
   } catch (error) {
     return ctx.reply(
       `${response}
-💸 ${completion.usage?.total_tokens} tokens`
+
+💸 ${run.usage?.total_tokens} tokens`
     );
   }
 });

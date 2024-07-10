@@ -41,7 +41,56 @@ convScene.use(async (ctx, next) => {
 convScene.on(callbackQuery("data"), async (ctx) => {
   const { prisma } = ctx.session;
 
-  const showConvDetails = async (conversationId: string) => {
+  const data = ctx.callbackQuery.data.split(".");
+  if (data[0] === "asst" && data[1] === "new") {
+    await ctx.answerCbQuery("🤖 New Assistant");
+    await ctx.editMessageReplyMarkup(undefined);
+    return ctx.scene.enter("newAssistantScene");
+  }
+
+  if (data[0] !== "conv") {
+    // FIXME: Handle callback query data mismatch
+    await ctx.answerCbQuery();
+    return ctx.scene.leave();
+  }
+
+  if (data[1] === "new") {
+    if (data.length === 2) return chooseAssistant();
+    else if (data.length === 3) return createNewConversation(data[2]);
+  }
+
+  if (data[1] === "back") {
+    await ctx.answerCbQuery("💬 Conversations");
+    await ctx.editMessageReplyMarkup(undefined);
+    return ctx.scene.reenter();
+  }
+
+  if (data.length === 3) {
+    switch (data[2]) {
+      case "cont":
+        return enterConversation(data[1]);
+      case "del":
+        return deleteConversation(data[1]);
+      case "hist":
+        return conversationHistory(data[1]);
+      default:
+        await ctx.answerCbQuery("💬 Conversations");
+        await ctx.editMessageReplyMarkup(undefined);
+        return ctx.scene.reenter();
+    }
+  }
+
+  const exists = await prisma.conversation.count({
+    where: { id: data[1] },
+  });
+
+  if (!exists) {
+    return ctx.reply(`Conversation ${data[1]} doesn't exist in the database.`);
+  }
+
+  return showConvDetails(data[1]);
+
+  async function showConvDetails(conversationId: string) {
     const conversation = await prisma.conversation.findUniqueOrThrow({
       where: { id: conversationId },
       select: { title: true, assistant: true },
@@ -81,17 +130,17 @@ convScene.on(callbackQuery("data"), async (ctx) => {
         },
       }
     );
-  };
+  }
 
-  const deleteConversation = async (conversationId: string) => {
+  async function deleteConversation(conversationId: string) {
     await prisma.message.deleteMany({ where: { conversationId } });
     await prisma.conversation.delete({ where: { id: conversationId } });
     await ctx.answerCbQuery("🗑️ Deleted Conversation.");
     await ctx.editMessageReplyMarkup(undefined);
     return ctx.scene.reenter();
-  };
+  }
 
-  const conversationHistory = async (conversationId: string) => {
+  async function conversationHistory(conversationId: string) {
     const conversation = await prisma.conversation.findUniqueOrThrow({
       where: { id: conversationId },
       include: { messages: true, assistant: true },
@@ -122,26 +171,9 @@ ${message.content}
     }
 
     return showConvDetails(conversationId);
-  };
+  }
 
-  const chooseAssistant = async () => {
-    const assistants = await prisma.assistant.findMany({
-      where: { userId: ctx.from.id },
-    });
-
-    const buttons: InlineKeyboardButton[][] = assistants.map((a) => [
-      { text: a.name, callback_data: `conv.new.${a.id}` },
-    ]);
-
-    await ctx.answerCbQuery("New conversation");
-    await ctx.editMessageReplyMarkup(undefined);
-    return ctx.replyWithHTML(
-      "Choose an <b>assistant</b> to start a new conversation with.",
-      { reply_markup: { inline_keyboard: buttons } }
-    );
-  };
-
-  const createNewConversation = async (assistantId: string) => {
+  async function createNewConversation(assistantId: string) {
     const newConversation = await prisma.conversation.create({
       data: {
         assistantId,
@@ -151,50 +183,33 @@ ${message.content}
     });
 
     return enterConversation(newConversation.id);
-  };
+  }
 
-  const enterConversation = async (conversationId: string) => {
+  async function enterConversation(conversationId: string) {
     await ctx.answerCbQuery("💬 Chatting");
     await ctx.editMessageReplyMarkup(undefined);
     return ctx.scene.enter("chatScene", { conversationId });
-  };
-
-  const data = ctx.callbackQuery.data.split(".");
-  if (data[0] !== "conv") {
-    // FIXME: Handle callback query data mismatch
-    await ctx.answerCbQuery();
-    return ctx.scene.leave();
   }
 
-  if (data[1] === "new") {
-    if (data.length === 2) return chooseAssistant();
-    else if (data.length === 3) return createNewConversation(data[2]);
+  async function chooseAssistant() {
+    const assistants = await prisma.assistant.findMany({
+      where: { userId: ctx.from.id },
+    });
+
+    const buttons: InlineKeyboardButton[][] = [];
+    buttons.push([{ text: "➕ New assistant", callback_data: "asst.new" }]);
+    assistants.forEach((a) =>
+      buttons.push([{ text: a.name, callback_data: "conv.new." + a.id }])
+    );
+    buttons.push([{ text: "👈 Back", callback_data: "conv.back" }]);
+
+    await ctx.answerCbQuery("🤖 Choose assistant");
+    await ctx.editMessageReplyMarkup(undefined);
+    return ctx.replyWithHTML(
+      "Choose an <b>assistant</b> to start a new conversation with.",
+      { reply_markup: { inline_keyboard: buttons } }
+    );
   }
-
-  if (data.length === 3) {
-    switch (data[2]) {
-      case "cont":
-        return enterConversation(data[1]);
-      case "del":
-        return deleteConversation(data[1]);
-      case "hist":
-        return conversationHistory(data[1]);
-      default:
-        await ctx.answerCbQuery("💬 Conversations");
-        await ctx.editMessageReplyMarkup(undefined);
-        return ctx.scene.reenter();
-    }
-  }
-
-  const exists = await prisma.conversation.count({
-    where: { id: data[1] },
-  });
-
-  if (!exists) {
-    return ctx.reply(`Conversation ${data[1]} doesn't exist in the database.`);
-  }
-
-  return showConvDetails(data[1]);
 });
 
 export default convScene;
