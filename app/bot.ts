@@ -2,26 +2,21 @@ import { Scenes, session, Telegraf } from "telegraf";
 
 import BotContext from "./middlewares/bot-context";
 import { defaultSession } from "./middlewares/session-data";
-import startHandler from "./handlers/start-handler";
-import langHandler from "./handlers/lang-handler";
-import chatHandler from "./handlers/chat-handler";
-import voiceHandler from "./handlers/voice-handler";
+import helpHandler from "./handlers/help-handler";
 import chatScene from "./scenes/chat-scene";
-import { callbackQuery } from "telegraf/filters";
-import convHandler from "./handlers/conv-handler";
+import convScene from "./scenes/conv-scene";
+import settingsScene from "./scenes/settings-scene";
 
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 
 bot.use(session({ defaultSession }));
 
-const stage = new Scenes.Stage([chatScene]);
+const stage = new Scenes.Stage([chatScene, convScene, settingsScene]);
 bot.use(stage.middleware());
 
-bot.start(startHandler);
-bot.help(startHandler);
-bot.command("chat", chatHandler);
-bot.command("voice", voiceHandler);
-bot.command("lang", langHandler);
-bot.on(callbackQuery("data"), convHandler);
+bot.start(helpHandler);
+bot.help(helpHandler);
+bot.settings((ctx) => ctx.scene.enter("settingsScene"));
+bot.command("chat", (ctx) => ctx.scene.enter("convScene"));
 
 export default bot;

@@ -6,10 +6,11 @@ import {
   Message,
   CallbackQuery,
 } from "telegraf/typings/core/types/typegram";
+import BotSceneSession from "./scene-session";
 
 interface BotContext extends Context {
   session: SessionData;
-  scene: SceneContextScene<BotContext>;
+  scene: SceneContextScene<BotContext, BotSceneSession>;
 }
 
 export default BotContext;
@@ -24,5 +25,8 @@ export type TextMessageBotContext = NarrowedContext<
 
 export type CallbackDataQueryBotContext = NarrowedContext<
   BotContext,
-  Update.CallbackQueryUpdate<CallbackQuery.DataQuery>
+  {
+    callback_query: Update.CallbackQueryUpdate & CallbackQuery.DataQuery;
+    update_id: number;
+  }
 >;
