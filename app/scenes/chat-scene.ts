@@ -32,6 +32,9 @@ chatScene.enter(async (ctx) => {
 chatScene.on(message("text"), async (ctx, next) => {
   if (ctx.text.startsWith("/")) {
     await ctx.scene.leave();
+    if (ctx.text === "/leave") {
+      return ctx.scene.enter("convScene");
+    }
     return next();
   }
 
@@ -340,27 +343,18 @@ chatScene.command("leave", async (ctx) => {
 });
 
 chatScene.on(callbackQuery("data"), async (ctx) => {
-  if (ctx.callbackQuery.data === "chat.leave") return ctx.scene.leave();
+  if (ctx.callbackQuery.data === "chat.leave") {
+    await ctx.scene.leave();
+    return ctx.scene.enter("convScene");
+  }
 });
 
 chatScene.leave(async (ctx) => {
-  const { prisma } = ctx;
-  const { conversationId } = ctx.scene.session;
-  const conversation = await prisma.conversation.findUnique({
-    where: { id: conversationId },
-    select: { assistant: true },
-  });
-
-  delete ctx.scene.session.conversationId;
-
   await ctx.unpinAllChatMessages();
   if (ctx.callbackQuery) {
     await ctx.answerCbQuery("🚫 Left conversation.");
     await ctx.editMessageReplyMarkup(undefined);
   }
-  return ctx.replyWithHTML(
-    `<b>${conversation?.assistant.name}</b> says Goodbye!`
-  );
 });
 
 export default chatScene;

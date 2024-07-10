@@ -1,6 +1,7 @@
 import { Scenes } from "telegraf";
 import BotContext from "../middlewares/bot-context";
 import { callbackQuery, message } from "telegraf/filters";
+import { InlineKeyboardButton } from "telegraf/typings/core/types/typegram";
 
 const newAssistantScene = new Scenes.BaseScene<BotContext>("newAssistantScene");
 
@@ -91,7 +92,7 @@ newAssistantScene.on(callbackQuery("data"), async (ctx, next) => {
     };
     await ctx.answerCbQuery("🛜 Creating assistant...");
     await ctx.editMessageReplyMarkup(undefined);
-    const message = await ctx.replyWithHTML(
+    const waitMessage = await ctx.replyWithHTML(
       "<i>Creating new assistant, please wait...</i>"
     );
     await ctx.sendChatAction("typing");
@@ -101,16 +102,49 @@ newAssistantScene.on(callbackQuery("data"), async (ctx, next) => {
       instructions,
       temperature: 0.7,
     });
-    await prisma.assistant.create({
-      data: { name, serversideId: remoteAsst.id, userId: ctx.from.id },
+    const localAsst = await prisma.assistant.create({
+      data: {
+        name,
+        instructions,
+        serversideId: remoteAsst.id,
+        userId: ctx.from.id,
+      },
     });
-    await ctx.replyWithHTML(`❇️ Created new assistant.
+    await ctx.replyWithHTML(`❇️ <b>Created new assistant successfully.</b>`);
+    await ctx.deleteMessage(waitMessage.message_id);
+    await ctx.scene.enter("assistantScene", undefined, true);
+    return showAssistantDetails(localAsst);
+  }
 
-🤖 <b>Name:</b> <code>${name}</code>
+  async function showAssistantDetails(assistant: {
+    id: string;
+    name: string;
+    instructions: string | null;
+  }) {
+    const buttons: InlineKeyboardButton[][] = [];
+
+    buttons.push([
+      { text: "✏️ Name", callback_data: `asst.${assistant.id}.name` },
+      { text: "✏️ Instructions", callback_data: `asst.${assistant.id}.inst` },
+    ]);
+    buttons.push([
+      {
+        text: "❇️ New conversation",
+        callback_data: `asst.${assistant.id}.chat`,
+      },
+    ]);
+    buttons.push([
+      { text: "🗑️ Delete", callback_data: `asst.${assistant.id}.del` },
+    ]);
+    buttons.push([{ text: "👈 Assistants", callback_data: "asst.back" }]);
+
+    return ctx.replyWithHTML(
+      `🤖 <b>Name:</b> <code>${assistant.name}</code>
+
 ☝️ <b>Instructions:</b>
-<code>${instructions}</code>`);
-    await ctx.deleteMessage(message.message_id);
-    return ctx.scene.leave();
+<pre>${assistant.instructions}</pre>`,
+      { reply_markup: { inline_keyboard: buttons } }
+    );
   }
 });
 

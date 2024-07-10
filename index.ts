@@ -4,6 +4,7 @@ bot.launch(async () => {
   await bot.telegram.setMyCommands([
     { command: "help", description: "💁 List of commands" },
     { command: "chat", description: "💬 Talk to an assistant" },
+    { command: "assistants", description: "🤖 Manage assistants" },
     { command: "settings", description: "⚙️ Settings" },
   ]);
 });

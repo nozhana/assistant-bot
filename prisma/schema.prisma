@@ -27,6 +27,7 @@ model Assistant {
   id            String         @id @default(auto()) @map("_id") @db.ObjectId
   serversideId  String         @unique
   name          String
+  instructions  String?
   userId        Int
   user          User           @relation(fields: [userId], references: [id])
   conversations Conversation[]
@@ -41,8 +42,8 @@ model Conversation {
   userId      Int
   assistantId String    @db.ObjectId
   messages    Message[]
-  user        User      @relation(fields: [userId], references: [id])
-  assistant   Assistant @relation(fields: [assistantId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assistant   Assistant @relation(fields: [assistantId], references: [id], onDelete: Cascade)
 
   @@map("conversations")
 }
@@ -55,9 +56,9 @@ model Message {
   content        String
   tokens         Int
   conversationId String       @db.ObjectId
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
-  user           User         @relation(fields: [userId], references: [id])
-  assistant      Assistant    @relation(fields: [assistantId], references: [id])
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assistant      Assistant    @relation(fields: [assistantId], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }

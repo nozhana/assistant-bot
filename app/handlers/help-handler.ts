@@ -22,6 +22,7 @@ const helpHandler = async (ctx: BotContext) => {
           create: {
             name: "Personal assistant",
             serversideId: personalAssistant.id,
+            instructions: personalAssistant.instructions,
           },
         },
       },
@@ -31,8 +32,9 @@ const helpHandler = async (ctx: BotContext) => {
   await ctx.replyWithHTML(
     `💁 <b>Help</b>
 
-/start or /help — ℹ️ Show this message
+/start | /help — ℹ️ Show this message
 /chat — 💬 Talk to an assistant
+/assistants — 🤖 Manage assistants
 /settings — ⚙️ Settings menu
 
 v${escapeHtml(process.env.BOT_VERSION ?? "?.?.?")}`

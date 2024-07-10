@@ -8,6 +8,7 @@ import chatScene from "./scenes/chat-scene";
 import convScene from "./scenes/conv-scene";
 import settingsScene from "./scenes/settings-scene";
 import newAssistantScene from "./scenes/new-assistant-scene";
+import assistantScene from "./scenes/assistant-scene";
 import { PrismaClient } from "@prisma/client";
 import OpenAI from "openai";
 
@@ -17,9 +18,11 @@ const store = SQLite<SessionData>({
 });
 bot.use(session({ defaultSession, store }));
 
+const prisma = new PrismaClient();
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 bot.use((ctx, next) => {
-  ctx.prisma = new PrismaClient();
-  ctx.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  ctx.prisma ??= prisma;
+  ctx.openai ??= openai;
   return next();
 });
 
@@ -27,6 +30,7 @@ const stage = new Scenes.Stage([
   chatScene,
   convScene,
   settingsScene,
+  assistantScene,
   newAssistantScene,
 ]);
 bot.use(stage.middleware());
@@ -35,5 +39,6 @@ bot.start(helpHandler);
 bot.help(helpHandler);
 bot.settings((ctx) => ctx.scene.enter("settingsScene"));
 bot.command("chat", (ctx) => ctx.scene.enter("convScene"));
+bot.command("assistants", (ctx) => ctx.scene.enter("assistantScene"));
 
 export default bot;

@@ -84,7 +84,7 @@ settingsScene.on(callbackQuery("data"), async (ctx, next) => {
       await ctx.editMessageReplyMarkup(undefined);
       return ctx.scene.reenter();
     default:
-      await ctx.answerCbQuery("🛑 NOT IMPLEMENTED.", { show_alert: true });
+      await ctx.answerCbQuery("🛑 Not implemented", { show_alert: true });
       return ctx.scene.reenter();
   }
 
