@@ -8,7 +8,7 @@ import { TextContentBlock } from "openai/resources/beta/threads/messages";
 const chatScene = new Scenes.BaseScene<BotContext>("chatScene");
 
 chatScene.enter(async (ctx) => {
-  const { prisma } = ctx.session;
+  const { prisma } = ctx;
   const { conversationId } = ctx.scene.session.state as {
     conversationId: string;
   };
@@ -35,7 +35,7 @@ chatScene.on(message("text"), async (ctx, next) => {
     return next();
   }
 
-  const { prisma, openai } = ctx.session;
+  const { prisma, openai } = ctx;
   const { conversationId } = ctx.scene.session;
 
   const waitMessage = await ctx.replyWithHTML("<i>Please wait...</i>");
@@ -185,7 +185,7 @@ chatScene.on(message("text"), async (ctx, next) => {
 });
 
 chatScene.on(message("voice"), async (ctx) => {
-  const { prisma, openai } = ctx.session;
+  const { prisma, openai } = ctx;
   const { conversationId } = ctx.scene.session;
   const { file_id } = ctx.message.voice;
   const fileURL = await ctx.telegram.getFileLink(file_id);
@@ -349,7 +349,7 @@ chatScene.on(callbackQuery("data"), async (ctx) => {
 });
 
 chatScene.leave(async (ctx) => {
-  const { prisma } = ctx.session;
+  const { prisma } = ctx;
   const { conversationId } = ctx.scene.session;
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },

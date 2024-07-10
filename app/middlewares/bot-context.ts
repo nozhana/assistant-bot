@@ -7,10 +7,14 @@ import {
   CallbackQuery,
 } from "telegraf/typings/core/types/typegram";
 import BotSceneSession from "./scene-session";
+import { PrismaClient } from "@prisma/client";
+import OpenAI from "openai";
 
 interface BotContext extends Context {
   session: SessionData;
   scene: SceneContextScene<BotContext, BotSceneSession>;
+  prisma: PrismaClient;
+  openai: OpenAI;
 }
 
 export default BotContext;

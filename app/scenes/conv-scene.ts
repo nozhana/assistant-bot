@@ -6,7 +6,7 @@ import { callbackQuery } from "telegraf/filters";
 const convScene = new Scenes.BaseScene<BotContext>("convScene");
 
 convScene.enter(async (ctx) => {
-  const { prisma } = ctx.session;
+  const { prisma } = ctx;
 
   const conversations = await prisma.conversation.findMany({
     where: { userId: ctx.from?.id },
@@ -39,7 +39,7 @@ convScene.use(async (ctx, next) => {
 });
 
 convScene.on(callbackQuery("data"), async (ctx) => {
-  const { prisma } = ctx.session;
+  const { prisma } = ctx;
 
   const data = ctx.callbackQuery.data.split(".");
   if (data[0] === "asst" && data[1] === "new") {

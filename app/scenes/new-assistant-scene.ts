@@ -65,7 +65,7 @@ newAssistantScene.on(message("text"), async (ctx) => {
 });
 
 newAssistantScene.on(callbackQuery("data"), async (ctx, next) => {
-  const { prisma, openai } = ctx.session;
+  const { prisma, openai } = ctx;
   const data = ctx.callbackQuery.data.split(".");
   if (data[0] !== "asst") return next();
 

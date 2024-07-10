@@ -2,7 +2,7 @@ import BotContext from "../middlewares/bot-context";
 import escapeHtml from "../util/escape-html";
 
 const helpHandler = async (ctx: BotContext) => {
-  const { openai, prisma } = ctx.session;
+  const { openai, prisma } = ctx;
   const { id, first_name } = ctx.message!.from;
 
   try {
