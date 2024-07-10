@@ -75,11 +75,6 @@ chatScene.on(message("text"), async (ctx, next) => {
     max_completion_tokens: 512,
   });
 
-  if (run.status !== "completed") {
-    await ctx.deleteMessage(waitMessage.message_id);
-    return ctx.reply("Failed to complete thread run. Please try again.");
-  }
-
   const remoteMessages = await openai.beta.threads.messages.list(run.thread_id);
   const response = (remoteMessages.data[0].content[0] as TextContentBlock)?.text
     .value;
