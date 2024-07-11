@@ -1,4 +1,4 @@
-import { Scenes, session, Telegraf } from "telegraf";
+import { Composer, Scenes, session, Telegraf } from "telegraf";
 import { SQLite } from "@telegraf/session/sqlite";
 
 import BotContext from "./middlewares/bot-context";
@@ -11,6 +11,7 @@ import newAssistantScene from "./scenes/new-assistant-scene";
 import assistantScene from "./scenes/assistant-scene";
 import { PrismaClient } from "@prisma/client";
 import OpenAI from "openai";
+import adminBot from "./admin/composer";
 
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 const store = SQLite<SessionData>({
@@ -25,6 +26,9 @@ bot.use((ctx, next) => {
   ctx.openai ??= openai;
   return next();
 });
+
+const admins = process.env.BOT_ADMINS?.split(",").map(Number) ?? [];
+bot.use(Composer.acl(admins, adminBot));
 
 const stage = new Scenes.Stage([
   chatScene,

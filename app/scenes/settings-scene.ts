@@ -38,6 +38,10 @@ settingsScene.enter(async (ctx) => {
     },
   ]);
 
+  const admins = process.env.BOT_ADMINS?.split(",").map(Number) ?? [];
+  if (ctx.from && admins.includes(ctx.from.id))
+    buttons.push([{ text: "👑 Admin menu", callback_data: "admin.menu" }]);
+
   return ctx.replyWithHTML("⚙️ <b>Settings</b>", {
     reply_markup: { inline_keyboard: buttons },
   });
