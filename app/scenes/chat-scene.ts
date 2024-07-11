@@ -1,9 +1,10 @@
 import { Scenes } from "telegraf";
 import { toFile } from "openai";
 import BotContext from "../middlewares/bot-context";
-import { callbackQuery, message } from "telegraf/filters";
+import { message } from "telegraf/filters";
 import { randomUUID } from "crypto";
 import { TextContentBlock } from "openai/resources/beta/threads/messages";
+import { createReadStream } from "fs";
 
 const chatScene = new Scenes.BaseScene<BotContext>("chatScene");
 
@@ -338,15 +339,62 @@ chatScene.on(message("voice"), async (ctx) => {
   }
 });
 
+chatScene.on(message("document"), async (ctx) => {
+  const { prisma, openai } = ctx;
+  const { conversationId } = ctx.scene.session;
+
+  const { file_id } = ctx.message.document;
+  const fileLink = await ctx.telegram.getFileLink(file_id);
+  const res = await fetch(fileLink);
+
+  const waitMessage = await ctx.replyWithHTML("<i>Please wait...</i>");
+
+  await ctx.sendChatAction("upload_document");
+  const remoteFile = await openai.files.create({
+    file: res,
+    purpose: "assistants",
+  });
+
+  const assistant = (
+    await prisma.conversation.findUniqueOrThrow({
+      where: { id: conversationId },
+      select: { assistant: true },
+    })
+  ).assistant;
+
+  await ctx.sendChatAction("typing");
+  const store = await openai.beta.vectorStores.create({
+    name: `${assistant.name} storage`,
+    file_ids: [remoteFile.id],
+    expires_after: { anchor: "last_active_at", days: 7 },
+  });
+
+  const storeIds =
+    (await openai.beta.assistants.retrieve(assistant.serversideId))
+      .tool_resources?.file_search?.vector_store_ids ?? [];
+
+  await openai.beta.assistants.update(assistant.serversideId, {
+    tools: [{ type: "file_search" }],
+    tool_resources: {
+      file_search: { vector_store_ids: [...storeIds, store.id] },
+    },
+  });
+
+  await ctx.deleteMessage(waitMessage.message_id);
+  return ctx.replyWithHTML(`📎 Attached document to assistant.
+📁 <b>Filename:</b> <code>${remoteFile.filename}</code>
+🗄️ <b>Store:</b> <code>${store.name}</code>
+
+⚠️ This file is set to expire after <b>7 days</b> of not being referenced.`);
+});
+
 chatScene.command("leave", async (ctx) => {
   return ctx.scene.leave();
 });
 
-chatScene.on(callbackQuery("data"), async (ctx) => {
-  if (ctx.callbackQuery.data === "chat.leave") {
-    await ctx.scene.leave();
-    return ctx.scene.enter("convScene");
-  }
+chatScene.action("chat.leave", async (ctx) => {
+  await ctx.scene.leave();
+  return ctx.scene.enter("convScene");
 });
 
 chatScene.leave(async (ctx) => {

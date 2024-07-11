@@ -103,6 +103,14 @@ assistantScene.on(callbackQuery("data"), async (ctx) => {
   async function deleteAssistant(id: string) {
     const { prisma, openai } = ctx;
     const deleted = await prisma.assistant.delete({ where: { id } });
+    const storeIds =
+      (await openai.beta.assistants.retrieve(deleted.serversideId))
+        .tool_resources?.file_search?.vector_store_ids ?? [];
+
+    for (let storeId of storeIds) {
+      await openai.beta.vectorStores.del(storeId);
+    }
+
     await openai.beta.assistants.del(deleted.serversideId);
     await ctx.answerCbQuery("✅ Deleted assistant.", {
       show_alert: true,
