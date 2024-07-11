@@ -6,29 +6,7 @@ import { callbackQuery } from "telegraf/filters";
 const convScene = new Scenes.BaseScene<BotContext>("convScene");
 
 convScene.enter(async (ctx) => {
-  const { prisma } = ctx;
-
-  const conversations = await prisma.conversation.findMany({
-    where: { userId: ctx.from?.id },
-    include: { assistant: true },
-  });
-
-  const buttons: InlineKeyboardButton[][] = [];
-  buttons.push([{ text: "➕ New conversation", callback_data: "conv.new" }]);
-  conversations.forEach((c) =>
-    buttons.push([
-      { text: c.title ?? c.assistant.name, callback_data: `conv.${c.id}` },
-    ])
-  );
-
-  return ctx.reply(
-    conversations.length
-      ? "Here's a list of all your conversations with your assistants."
-      : "You have no previous conversations.",
-    {
-      reply_markup: { inline_keyboard: buttons },
-    }
-  );
+  return listConversations(ctx);
 });
 
 convScene.use(async (ctx, next) => {
@@ -52,6 +30,19 @@ convScene.on(callbackQuery("data"), async (ctx) => {
     // FIXME: Handle callback query data mismatch
     await ctx.answerCbQuery();
     return ctx.scene.leave();
+  }
+
+  if (data[1] === "list") {
+    const page = Number(data[2]);
+    const convCount = await prisma.conversation.count({
+      where: { userId: ctx.from.id },
+    });
+
+    await ctx.answerCbQuery(
+      `💬 Conversations: ${page}/${(convCount / 10 + 1).toFixed()}`
+    );
+    await ctx.deleteMessage();
+    return listConversations(ctx, page);
   }
 
   if (data[1] === "new") {
@@ -211,5 +202,55 @@ ${message.content}
     );
   }
 });
+
+async function listConversations(ctx: BotContext, page: number = 1) {
+  const { prisma } = ctx;
+
+  const conversations = await prisma.conversation.findMany({
+    take: 10,
+    skip: (page - 1) * 10,
+    where: { userId: ctx.from?.id },
+    include: { assistant: true },
+  });
+
+  const convCount = await prisma.conversation.count({
+    where: { userId: ctx.from?.id },
+  });
+
+  const buttons: InlineKeyboardButton[][] = [];
+  buttons.push([{ text: "➕ New conversation", callback_data: "conv.new" }]);
+  conversations.forEach((c) =>
+    buttons.push([
+      { text: c.title ?? c.assistant.name, callback_data: `conv.${c.id}` },
+    ])
+  );
+
+  const navRow: InlineKeyboardButton[] = [];
+
+  if (page > 1)
+    navRow.push({
+      text: `⬅️ Page ${page - 1}`,
+      callback_data: `conv.list.${page - 1}`,
+    });
+
+  if (page * 10 < convCount)
+    navRow.push({
+      text: `Page ${page + 1} ➡️`,
+      callback_data: `conv.list.${page + 1}`,
+    });
+
+  if (navRow.length) buttons.push(navRow);
+
+  const response = convCount
+    ? `Here's a list of all your conversations with your assistants. (Page ${page}/${(
+        convCount / 10 +
+        1
+      ).toFixed()})`
+    : "You have no previous conversations.";
+
+  return ctx.reply(response, {
+    reply_markup: { inline_keyboard: buttons },
+  });
+}
 
 export default convScene;

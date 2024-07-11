@@ -389,20 +389,19 @@ chatScene.on(message("document"), async (ctx) => {
 });
 
 chatScene.command("leave", async (ctx) => {
-  return ctx.scene.leave();
+  await ctx.scene.leave();
+  return ctx.scene.enter("convScene");
 });
 
 chatScene.action("chat.leave", async (ctx) => {
+  await ctx.answerCbQuery("🚫 Left conversation.");
+  await ctx.editMessageReplyMarkup(undefined);
   await ctx.scene.leave();
   return ctx.scene.enter("convScene");
 });
 
 chatScene.leave(async (ctx) => {
   await ctx.unpinAllChatMessages();
-  if (ctx.callbackQuery) {
-    await ctx.answerCbQuery("🚫 Left conversation.");
-    await ctx.editMessageReplyMarkup(undefined);
-  }
 });
 
 export default chatScene;

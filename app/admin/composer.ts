@@ -8,6 +8,10 @@ const stage = new Scenes.Stage([adminMenuScene]);
 adminBot.use(stage.middleware());
 
 adminBot.command("admin", (ctx) => ctx.scene.enter("adminMenuScene"));
-adminBot.action("admin.menu", (ctx) => ctx.scene.enter("adminMenuScene"));
+adminBot.action("admin.menu", (ctx) => {
+  ctx.answerCbQuery("👑 Admin menu");
+  ctx.editMessageReplyMarkup(undefined);
+  ctx.scene.enter("adminMenuScene");
+});
 
 export default adminBot;
