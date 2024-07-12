@@ -53,10 +53,13 @@ adminMenuScene.action(/admin\.users\.(\d+)/g, async (ctx) => {
   buttons.push([{ text: "👈 Back", callback_data: "admin.reset" }]);
 
   await ctx.answerCbQuery(
-    `👥 Users: ${page}/${(usersCount / 10 + 1).toFixed()}`
+    `👥 Users (page ${page} of ${(usersCount / 10 + 1).toFixed()})`
   );
   return ctx.editMessageText(
-    `👥 <b>Users</b> page(${page} of ${(usersCount / 10 + 1).toFixed()})`,
+    `👥 <b>Users</b>\n<i>Page ${page} of ${(
+      usersCount / 10 +
+      1
+    ).toFixed()}</i>`,
     {
       reply_markup: { inline_keyboard: buttons },
       parse_mode: "HTML",
