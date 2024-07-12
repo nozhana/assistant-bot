@@ -22,6 +22,7 @@ adminMenuScene.action(/admin\.users\.(\d+)/g, async (ctx) => {
   const page = Number(ctx.match[0].split(".").pop());
   const users = await prisma.user.findMany({ take: 10, skip: (page - 1) * 10 });
   const usersCount = await prisma.user.count();
+  const pages = Math.floor(usersCount / 10 + 1);
 
   const buttons: InlineKeyboardButton[][] = [];
 
@@ -42,7 +43,7 @@ adminMenuScene.action(/admin\.users\.(\d+)/g, async (ctx) => {
       callback_data: `admin.users.${page - 1}`,
     });
 
-  if (page * 10 < usersCount)
+  if (page < pages)
     navRow.push({
       text: `Page ${page + 1} ➡️`,
       callback_data: `admin.users.${page + 1}`,
@@ -52,14 +53,9 @@ adminMenuScene.action(/admin\.users\.(\d+)/g, async (ctx) => {
 
   buttons.push([{ text: "👈 Back", callback_data: "admin.reset" }]);
 
-  await ctx.answerCbQuery(
-    `👥 Users (page ${page} of ${(usersCount / 10 + 1).toFixed()})`
-  );
+  await ctx.answerCbQuery(`👥 Users (page ${page} of ${pages})`);
   return ctx.editMessageText(
-    `👥 <b>Users</b>\n<i>Page ${page} of ${(
-      usersCount / 10 +
-      1
-    ).toFixed()}</i>`,
+    `👥 <b>Users</b>\n<i>Page ${page} of ${pages}</i>`,
     {
       reply_markup: { inline_keyboard: buttons },
       parse_mode: "HTML",

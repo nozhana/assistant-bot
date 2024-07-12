@@ -37,10 +37,9 @@ convScene.on(callbackQuery("data"), async (ctx) => {
     const convsCount = await prisma.conversation.count({
       where: { userId: ctx.from.id },
     });
+    const pages = Math.floor(convsCount / 10 + 1);
 
-    await ctx.answerCbQuery(
-      `💬 Conversations (page ${page} of ${(convsCount / 10 + 1).toFixed()})`
-    );
+    await ctx.answerCbQuery(`💬 Conversations (page ${page} of ${pages})`);
     await ctx.deleteMessage();
     return listConversations(ctx, page);
   }
@@ -223,6 +222,7 @@ async function listConversations(ctx: BotContext, page: number = 1) {
   const convsCount = await prisma.conversation.count({
     where: { userId: ctx.from?.id },
   });
+  const pages = Math.floor(convsCount / 10 + 1);
 
   const buttons: InlineKeyboardButton[][] = [];
   buttons.push([{ text: "➕ New conversation", callback_data: "conv.new" }]);
@@ -240,7 +240,7 @@ async function listConversations(ctx: BotContext, page: number = 1) {
       callback_data: `conv.list.${page - 1}`,
     });
 
-  if (page * 10 < convsCount)
+  if (page < pages)
     navRow.push({
       text: `Page ${page + 1} ➡️`,
       callback_data: `conv.list.${page + 1}`,
@@ -249,10 +249,7 @@ async function listConversations(ctx: BotContext, page: number = 1) {
   if (navRow.length) buttons.push(navRow);
 
   const response = convsCount
-    ? `💬 <b>Conversations</b>\n<i>Page ${page} of ${(
-        convsCount / 10 +
-        1
-      ).toFixed()}</i>`
+    ? `💬 <b>Conversations</b>\n<i>Page ${page} of ${pages}</i>`
     : "💬 <b>You have no previous conversations.</b>";
 
   return ctx.replyWithHTML(response, {
