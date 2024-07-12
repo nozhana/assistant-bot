@@ -22,7 +22,7 @@ adminMenuScene.action(/admin\.users\.(\d+)/g, async (ctx) => {
   const page = Number(ctx.match[0].split(".").pop());
   const users = await prisma.user.findMany({ take: 10, skip: (page - 1) * 10 });
   const usersCount = await prisma.user.count();
-  const pages = Math.floor(usersCount / 10 + 1);
+  const pages = Math.ceil(usersCount / 10);
 
   const buttons: InlineKeyboardButton[][] = [];
 

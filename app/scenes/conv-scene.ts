@@ -37,7 +37,7 @@ convScene.on(callbackQuery("data"), async (ctx) => {
     const convsCount = await prisma.conversation.count({
       where: { userId: ctx.from.id },
     });
-    const pages = Math.floor(convsCount / 10 + 1);
+    const pages = Math.ceil(convsCount / 10);
 
     await ctx.answerCbQuery(`💬 Conversations (page ${page} of ${pages})`);
     await ctx.deleteMessage();
@@ -222,7 +222,7 @@ async function listConversations(ctx: BotContext, page: number = 1) {
   const convsCount = await prisma.conversation.count({
     where: { userId: ctx.from?.id },
   });
-  const pages = Math.floor(convsCount / 10 + 1);
+  const pages = Math.ceil(convsCount / 10);
 
   const buttons: InlineKeyboardButton[][] = [];
   buttons.push([{ text: "➕ New conversation", callback_data: "conv.new" }]);
