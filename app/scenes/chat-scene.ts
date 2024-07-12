@@ -190,9 +190,6 @@ async function handlePrompt(ctx: BotContext, text: string) {
   const stream = openai.beta.threads.createAndRunStream({
     assistant_id: conversation.assistant.serversideId,
     model: "gpt-4o",
-    instructions:
-      conversation.assistant.instructions +
-      "\nRespond in Telegram Markdown V2 format.",
     thread: {
       messages: messages.map((e) => ({
         content: e.content,
@@ -273,13 +270,9 @@ async function handlePrompt(ctx: BotContext, text: string) {
 
     for (let chunk of chunks) {
       try {
-        await ctx.replyWithMarkdownV2(chunk);
+        await ctx.replyWithMarkdown(chunk);
       } catch {
-        try {
-          await ctx.replyWithMarkdown(chunk);
-        } catch {
-          await ctx.reply(chunk);
-        }
+        await ctx.reply(chunk);
       }
     }
 
