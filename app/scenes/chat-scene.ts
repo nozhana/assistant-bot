@@ -105,7 +105,7 @@ chatScene.on(message("document"), async (ctx) => {
   );
 
   const tools: AssistantTool[] = [];
-  const toolResources: AssistantUpdateParams.ToolResources = {};
+  const tool_resources: AssistantUpdateParams.ToolResources = {};
 
   tools.push({ type: "file_search" });
 
@@ -114,19 +114,20 @@ chatScene.on(message("document"), async (ctx) => {
   const codeFileIds =
     remoteAsst.tool_resources?.code_interpreter?.file_ids ?? [];
 
-  if (store)
-    toolResources.file_search = { vector_store_ids: [store.id, ...storeIds] };
+  tool_resources.file_search = { vector_store_ids: [...storeIds] };
+  if (store) tool_resources.file_search.vector_store_ids?.push(store.id);
 
   if (remoteAsst.tools.filter((v) => v.type === "code_interpreter").length) {
     tools.push({ type: "code_interpreter" });
-    toolResources.code_interpreter = {
-      file_ids: [remoteFile.id, ...codeFileIds],
-    };
   }
+
+  tool_resources.code_interpreter = {
+    file_ids: [...codeFileIds, remoteFile.id],
+  };
 
   await openai.beta.assistants.update(assistant.serversideId, {
     tools,
-    tool_resources: toolResources,
+    tool_resources,
   });
 
   try {
