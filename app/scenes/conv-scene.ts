@@ -190,7 +190,9 @@ ${chunk}
 
   async function chooseAssistant() {
     const assistants = await prisma.assistant.findMany({
-      where: { userId: ctx.from.id },
+      where: {
+        OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
+      },
     });
 
     const buttons: InlineKeyboardButton[][] = [];

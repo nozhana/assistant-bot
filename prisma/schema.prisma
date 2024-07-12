@@ -14,11 +14,13 @@ datasource db {
 }
 
 model User {
-  id            Int            @id @map("_id")
-  firstName     String
-  assistants    Assistant[]
-  conversations Conversation[]
-  messages      Message[]
+  id                Int            @id @map("_id")
+  firstName         String
+  assistants        Assistant[]
+  conversations     Conversation[]
+  messages          Message[]
+  guestAssistantIds String[]       @db.ObjectId
+  guestAssistants   Assistant[]    @relation("guests", fields: [guestAssistantIds], references: [id])
 
   @@map("users")
 }
@@ -30,6 +32,8 @@ model Assistant {
   instructions  String?
   userId        Int
   user          User           @relation(fields: [userId], references: [id])
+  guestIds      Int[]
+  guests        User[]         @relation("guests", fields: [guestIds], references: [id])
   conversations Conversation[]
   messages      Message[]
 

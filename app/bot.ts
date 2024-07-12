@@ -12,6 +12,8 @@ import assistantScene from "./scenes/assistant-scene";
 import { PrismaClient } from "@prisma/client";
 import OpenAI from "openai";
 import adminBot from "./admin/composer";
+import asstInlineHandler from "./handlers/asst-inline-handler";
+import asstGuestCallbackHandler from "./handlers/asst-guest-callback-handler";
 
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 const store = SQLite<SessionData>({
@@ -44,5 +46,7 @@ bot.help(helpHandler);
 bot.settings((ctx) => ctx.scene.enter("settingsScene"));
 bot.command("chat", (ctx) => ctx.scene.enter("convScene"));
 bot.command("assistants", (ctx) => ctx.scene.enter("assistantScene"));
+bot.on("inline_query", asstInlineHandler);
+bot.action(/guest\.([^.]+)/g, asstGuestCallbackHandler);
 
 export default bot;

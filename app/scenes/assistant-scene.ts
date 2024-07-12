@@ -7,9 +7,12 @@ const assistantScene = new Scenes.BaseScene<BotContext>("assistantScene");
 
 assistantScene.enter(async (ctx) => {
   const { prisma } = ctx;
+  if (!ctx.from) return ctx.scene.leave();
 
   const assistants = await prisma.assistant.findMany({
-    where: { userId: ctx.from?.id },
+    where: {
+      OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
+    },
   });
 
   const buttons: InlineKeyboardButton[][] = [];
@@ -21,7 +24,7 @@ assistantScene.enter(async (ctx) => {
     ])
   );
 
-  return ctx.reply("Here's a list of all your assistants.", {
+  return ctx.replyWithHTML("🤖 <b>Assistants</b>", {
     reply_markup: { inline_keyboard: buttons },
   });
 });
@@ -41,35 +44,51 @@ assistantScene.action("asst.new", async (ctx) => {
 assistantScene.action(/asst\.([^\.]+)\.del/g, async (ctx) => {
   const id = ctx.match[0].split(".")[1];
   const { prisma, openai } = ctx;
-  const deleted = await prisma.assistant.delete({ where: { id } });
-  const remoteAsst = await openai.beta.assistants.retrieve(
-    deleted.serversideId
-  );
-  const storeIds =
-    remoteAsst.tool_resources?.file_search?.vector_store_ids ?? [];
-  const fileSearchFileIds: string[] = [];
+  const isGuest = await prisma.user.count({
+    where: {
+      id: ctx.from.id,
+      guestAssistantIds: { has: id },
+      assistants: { none: { id } },
+    },
+  });
 
-  for (let storeId of storeIds) {
-    const vectorFiles = await openai.beta.vectorStores.files.list(storeId);
-    for (let vectorFile of vectorFiles.data) {
-      fileSearchFileIds.push(vectorFile.id);
+  if (isGuest) {
+    await prisma.user.update({
+      where: { id: ctx.from.id },
+      data: { guestAssistants: { disconnect: { id } } },
+    });
+  } else {
+    const deleted = await prisma.assistant.delete({ where: { id } });
+    const remoteAsst = await openai.beta.assistants.retrieve(
+      deleted.serversideId
+    );
+    const storeIds =
+      remoteAsst.tool_resources?.file_search?.vector_store_ids ?? [];
+    const fileSearchFileIds: string[] = [];
+
+    for (let storeId of storeIds) {
+      const vectorFiles = await openai.beta.vectorStores.files.list(storeId);
+      for (let vectorFile of vectorFiles.data) {
+        fileSearchFileIds.push(vectorFile.id);
+      }
     }
+
+    const fileIds = [
+      ...(remoteAsst.tool_resources?.code_interpreter?.file_ids ?? []),
+      ...fileSearchFileIds,
+    ];
+
+    for (let fileId of fileIds) {
+      await openai.files.del(fileId);
+    }
+
+    for (let storeId of storeIds) {
+      await openai.beta.vectorStores.del(storeId);
+    }
+
+    await openai.beta.assistants.del(deleted.serversideId);
   }
 
-  const fileIds = [
-    ...(remoteAsst.tool_resources?.code_interpreter?.file_ids ?? []),
-    ...fileSearchFileIds,
-  ];
-
-  for (let fileId of fileIds) {
-    await openai.files.del(fileId);
-  }
-
-  for (let storeId of storeIds) {
-    await openai.beta.vectorStores.del(storeId);
-  }
-
-  await openai.beta.assistants.del(deleted.serversideId);
   await ctx.answerCbQuery("✅ Deleted assistant.", {
     show_alert: true,
   });
@@ -90,11 +109,11 @@ assistantScene.action(/asst\.([^\.]+)\.chat/g, async (ctx) => {
 
 assistantScene.action(/asst\.([^\.]+)\.name/g, async (ctx) => {
   // const id = ctx.match[0].split(".")[1];
-  return ctx.answerCbQuery("🛑 Not implemented.");
+  return ctx.answerCbQuery("🛑 Not implemented.", { show_alert: true });
 });
 
 assistantScene.action(/asst\.([^\.]+)\.inst/g, async (ctx) => {
-  return ctx.answerCbQuery("🛑 Not implemented.");
+  return ctx.answerCbQuery("🛑 Not implemented.", { show_alert: true });
 });
 
 assistantScene.action(/asst\.([^\.]+)\.code/g, async (ctx) => {
@@ -133,27 +152,59 @@ assistantScene.action(/asst\.([^\.]+)/g, async (ctx) => {
     where: { id },
   });
 
+  const isGuest = await prisma.user.count({
+    where: {
+      id: ctx.from.id,
+      guestAssistantIds: { has: id },
+      assistants: { none: { id } },
+    },
+  });
+
+  const isPersonalAssistant =
+    assistant.name.toLowerCase() === "personal assistant";
+
   const buttons: InlineKeyboardButton[][] = [];
 
-  buttons.push([
-    { text: "✏️ Name", callback_data: `asst.${assistant.id}.name` },
-    { text: "✏️ Instructions", callback_data: `asst.${assistant.id}.inst` },
-  ]);
+  if (!isGuest && !isPersonalAssistant) {
+    buttons.push([
+      { text: "✏️ Name", callback_data: `asst.${assistant.id}.name` },
+      { text: "✏️ Instructions", callback_data: `asst.${assistant.id}.inst` },
+    ]);
+  }
+
   buttons.push([
     {
       text: "❇️ New conversation",
       callback_data: `asst.${assistant.id}.chat`,
     },
   ]);
-  buttons.push([
-    { text: "🗑️ Delete", callback_data: `asst.${assistant.id}.del` },
-  ]);
-  buttons.push([
-    {
-      text: "🧑‍💻 Code interpreter",
-      callback_data: `asst.${assistant.id}.code`,
-    },
-  ]);
+
+  if (!isGuest && !isPersonalAssistant) {
+    buttons.push([
+      {
+        text: "🧑‍💻 Code interpreter",
+        callback_data: `asst.${assistant.id}.code`,
+      },
+    ]);
+    buttons.push([
+      {
+        text: "↗️ Share assistant",
+        switch_inline_query_chosen_chat: {
+          allow_bot_chats: false,
+          allow_channel_chats: false,
+          allow_group_chats: false,
+          allow_user_chats: true,
+          query: assistant.name,
+        },
+      },
+    ]);
+  }
+
+  if (!isPersonalAssistant)
+    buttons.push([
+      { text: "🗑️ Delete", callback_data: `asst.${assistant.id}.del` },
+    ]);
+
   buttons.push([{ text: "👈 Assistants", callback_data: "asst.back" }]);
 
   await ctx.answerCbQuery(`🤖 ${assistant.name}`);

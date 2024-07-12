@@ -134,13 +134,25 @@ newAssistantScene.on(callbackQuery("data"), async (ctx, next) => {
       },
     ]);
     buttons.push([
-      { text: "🗑️ Delete", callback_data: `asst.${assistant.id}.del` },
-    ]);
-    buttons.push([
       {
         text: "🧑‍💻 Code interpreter",
         callback_data: `asst.${assistant.id}.code`,
       },
+    ]);
+    buttons.push([
+      {
+        text: "↗️ Share assistant",
+        switch_inline_query_chosen_chat: {
+          allow_bot_chats: false,
+          allow_channel_chats: false,
+          allow_group_chats: false,
+          allow_user_chats: true,
+          query: assistant.name,
+        },
+      },
+    ]);
+    buttons.push([
+      { text: "🗑️ Delete", callback_data: `asst.${assistant.id}.del` },
     ]);
     buttons.push([{ text: "👈 Assistants", callback_data: "asst.back" }]);
 
