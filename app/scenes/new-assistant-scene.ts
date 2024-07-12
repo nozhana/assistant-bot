@@ -136,6 +136,12 @@ newAssistantScene.on(callbackQuery("data"), async (ctx, next) => {
     buttons.push([
       { text: "🗑️ Delete", callback_data: `asst.${assistant.id}.del` },
     ]);
+    buttons.push([
+      {
+        text: "🧑‍💻 Code interpreter",
+        callback_data: `asst.${assistant.id}.code`,
+      },
+    ]);
     buttons.push([{ text: "👈 Assistants", callback_data: "asst.back" }]);
 
     return ctx.replyWithHTML(

@@ -138,26 +138,33 @@ convScene.on(callbackQuery("data"), async (ctx) => {
     });
 
     for (let message of conversation.messages) {
-      try {
-        await ctx.replyWithMarkdown(
-          `**${
-            message.role === "ASSISTANT"
-              ? "🤖 " + conversation.assistant.name
-              : "👤 " + ctx.from.first_name
-          }**
-${message.content}
+      const chunks = message.content.match(/[\s\S]{1,3895}/g) ?? [
+        message.content,
+      ];
+      for (let chunk of chunks) {
+        try {
+          await ctx.replyWithMarkdown(
+            `**${
+              message.role === "ASSISTANT"
+                ? "🤖 " + conversation.assistant.name
+                : "👤 " + ctx.from.first_name
+            }**
+
+${chunk}
 💸 **${message.tokens} tokens**`
-        );
-      } catch (error) {
-        await ctx.sendMessage(
-          `${
-            message.role === "ASSISTANT"
-              ? "🤖 " + conversation.assistant.name
-              : "👤 " + ctx.from.first_name
-          }
-${message.content}
+          );
+        } catch (error) {
+          await ctx.sendMessage(
+            `${
+              message.role === "ASSISTANT"
+                ? "🤖 " + conversation.assistant.name
+                : "👤 " + ctx.from.first_name
+            }
+
+${chunk}
 💸 ${message.tokens} tokens`
-        );
+          );
+        }
       }
     }
 
@@ -242,10 +249,7 @@ async function listConversations(ctx: BotContext, page: number = 1) {
   if (navRow.length) buttons.push(navRow);
 
   const response = convCount
-    ? `Here's a list of all your conversations with your assistants. (Page ${page}/${(
-        convCount / 10 +
-        1
-      ).toFixed()})`
+    ? "Here's a list of all your conversations with your assistants."
     : "You have no previous conversations.";
 
   return ctx.reply(response, {
