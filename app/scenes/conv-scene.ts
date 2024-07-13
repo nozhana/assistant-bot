@@ -20,11 +20,12 @@ convScene.on(callbackQuery("data"), async (ctx) => {
   const { prisma } = ctx;
 
   const data = ctx.callbackQuery.data.split(".");
-  if (data[0] === "asst" && data[1] === "new") {
+
+  const createNewAssistant = async () => {
     await ctx.answerCbQuery("🤖 New Assistant");
     await ctx.editMessageReplyMarkup(undefined);
     return ctx.scene.enter("newAssistantScene");
-  }
+  };
 
   if (data[0] !== "conv") {
     // FIXME: Handle callback query data mismatch
@@ -44,9 +45,14 @@ convScene.on(callbackQuery("data"), async (ctx) => {
     return listConversations(ctx, page);
   }
 
-  if (data[1] === "new") {
+  if (data[1] === "asst") {
     if (data.length === 2) return chooseAssistant();
-    else if (data.length === 3) return createNewConversation(data[2]);
+    else if (data.length === 3)
+      return data[2] === "new"
+        ? createNewAssistant()
+        : createNewConversation(data[2]);
+    else if (data.length === 4 && data[2] === "list")
+      return chooseAssistant(Number(data[3]));
   }
 
   if (data[1] === "back") {
@@ -188,18 +194,41 @@ ${chunk}
     return ctx.scene.enter("chatScene", { conversationId });
   }
 
-  async function chooseAssistant() {
+  async function chooseAssistant(page: number = 1) {
     const assistants = await prisma.assistant.findMany({
       where: {
         OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
       },
     });
+    const assistantsCount = await prisma.assistant.count({
+      where: {
+        OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
+      },
+    });
+    const pages = Math.ceil(assistantsCount / 10);
 
     const buttons: InlineKeyboardButton[][] = [];
-    buttons.push([{ text: "➕ New assistant", callback_data: "asst.new" }]);
+    buttons.push([
+      { text: "➕ New assistant", callback_data: "conv.asst.new" },
+    ]);
     assistants.forEach((a) =>
-      buttons.push([{ text: a.name, callback_data: "conv.new." + a.id }])
+      buttons.push([{ text: a.name, callback_data: "conv.asst." + a.id }])
     );
+    const navRow: InlineKeyboardButton[] = [];
+
+    if (page > 1)
+      navRow.push({
+        text: `⬅️ Page ${page - 1}`,
+        callback_data: `conv.asst.list.${page - 1}`,
+      });
+
+    if (page < pages)
+      navRow.push({
+        text: `Page ${page + 1} ➡️`,
+        callback_data: `conv.asst.list.${page + 1}`,
+      });
+
+    if (navRow.length) buttons.push(navRow);
     buttons.push([{ text: "👈 Back", callback_data: "conv.back" }]);
 
     await ctx.answerCbQuery("🤖 Choose assistant");
@@ -215,8 +244,8 @@ async function listConversations(ctx: BotContext, page: number = 1) {
   const { prisma } = ctx;
 
   const conversations = await prisma.conversation.findMany({
-    take: 10,
     skip: (page - 1) * 10,
+    take: 10,
     where: { userId: ctx.from?.id },
     include: { assistant: true },
   });
@@ -227,7 +256,7 @@ async function listConversations(ctx: BotContext, page: number = 1) {
   const pages = Math.ceil(convsCount / 10);
 
   const buttons: InlineKeyboardButton[][] = [];
-  buttons.push([{ text: "➕ New conversation", callback_data: "conv.new" }]);
+  buttons.push([{ text: "➕ New conversation", callback_data: "conv.asst" }]);
   conversations.forEach((c) =>
     buttons.push([
       { text: c.title ?? c.assistant.name, callback_data: `conv.${c.id}` },

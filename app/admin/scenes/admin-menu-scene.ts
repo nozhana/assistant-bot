@@ -20,7 +20,7 @@ adminMenuScene.enter(async (ctx) => {
 adminMenuScene.action(/admin\.users\.(\d+)/g, async (ctx) => {
   const { prisma } = ctx;
   const page = Number(ctx.match[0].split(".").pop());
-  const users = await prisma.user.findMany({ take: 10, skip: (page - 1) * 10 });
+  const users = await prisma.user.findMany({ skip: (page - 1) * 10, take: 10 });
   const usersCount = await prisma.user.count();
   const pages = Math.ceil(usersCount / 10);
 

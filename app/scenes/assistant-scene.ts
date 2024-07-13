@@ -6,14 +6,28 @@ import { AssistantTool } from "openai/resources/beta/assistants";
 const assistantScene = new Scenes.BaseScene<BotContext>("assistantScene");
 
 assistantScene.enter(async (ctx) => {
+  return listAssistants(ctx);
+});
+
+const listAssistants = async (ctx: BotContext, page: number = 1) => {
   const { prisma } = ctx;
   if (!ctx.from) return ctx.scene.leave();
 
   const assistants = await prisma.assistant.findMany({
+    skip: (page - 1) * 10,
+    take: 10,
     where: {
       OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
     },
   });
+
+  const assistantsCount = await prisma.assistant.count({
+    where: {
+      OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
+    },
+  });
+
+  const pages = Math.ceil(assistantsCount / 10);
 
   const buttons: InlineKeyboardButton[][] = [];
   buttons.push([{ text: "➕ New assistant", callback_data: "asst.new" }]);
@@ -24,10 +38,26 @@ assistantScene.enter(async (ctx) => {
     ])
   );
 
+  const navRow: InlineKeyboardButton[] = [];
+
+  if (page > 1)
+    navRow.push({
+      text: `⬅️ Page ${page - 1}`,
+      callback_data: `asst.list.${page - 1}`,
+    });
+
+  if (page < pages)
+    navRow.push({
+      text: `Page ${page + 1} ➡️`,
+      callback_data: `asst.list.${page + 1}`,
+    });
+
+  if (navRow.length) buttons.push(navRow);
+
   return ctx.replyWithHTML("🤖 <b>Assistants</b>", {
     reply_markup: { inline_keyboard: buttons },
   });
-});
+};
 
 assistantScene.action("asst.back", async (ctx) => {
   await ctx.answerCbQuery("🤖 Assistants");
@@ -39,6 +69,11 @@ assistantScene.action("asst.new", async (ctx) => {
   await ctx.answerCbQuery("🤖 New assistant");
   await ctx.editMessageReplyMarkup(undefined);
   return ctx.scene.enter("newAssistantScene");
+});
+
+assistantScene.action(/asst\.list\.(\d+)/g, async (ctx) => {
+  const page = Number(ctx.match[0].split(".").pop());
+  return listAssistants(ctx, page);
 });
 
 assistantScene.action(/asst\.([^\.]+)\.del/g, async (ctx) => {
@@ -143,7 +178,7 @@ assistantScene.action(/asst\.([^\.]+)\.code/g, async (ctx) => {
   );
 });
 
-assistantScene.action(/asst\.([^\.]+)/g, async (ctx) => {
+assistantScene.action(/asst\.([^\.]+)$/g, async (ctx) => {
   const id = ctx.match[0].split(".").pop();
   if (!id) return ctx.scene.reenter();
 
@@ -207,15 +242,21 @@ assistantScene.action(/asst\.([^\.]+)/g, async (ctx) => {
 
   buttons.push([{ text: "👈 Assistants", callback_data: "asst.back" }]);
 
-  await ctx.answerCbQuery(`🤖 ${assistant.name}`);
-  await ctx.editMessageReplyMarkup(undefined);
-  return ctx.replyWithHTML(
-    `🤖 <b>Name:</b> <code>${assistant.name}</code>
+  let response = `🤖 <b>Name:</b> <code>${assistant.name}</code>
 
 ☝️ <b>Instructions:</b>
-<pre>${assistant.instructions}</pre>`,
-    { reply_markup: { inline_keyboard: buttons } }
-  );
+<pre>${assistant.instructions}</pre>`;
+
+  if (!isPersonalAssistant && !isGuest && assistant.guestIds.length)
+    response += `\n\n↗️ <b>Shared with ${assistant.guestIds.length} ${
+      assistant.guestIds.length === 1 ? "person" : "people"
+    }.</b>`;
+
+  await ctx.answerCbQuery(`🤖 ${assistant.name}`);
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.replyWithHTML(response, {
+    reply_markup: { inline_keyboard: buttons },
+  });
 });
 
 export default assistantScene;

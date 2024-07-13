@@ -43,7 +43,6 @@ const asstGuestCallbackHandler = async (
   await prisma.user.update({
     where: { id },
     data: { guestAssistants: { connect: { id: assistantId } } },
-    select: { guestAssistants: true },
   });
 
   await ctx.answerCbQuery(`✅ ${assistant.name} added to library.`);
