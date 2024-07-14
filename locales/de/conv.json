@@ -1,0 +1,14 @@
+{
+  "cb.convs.page": "💬 Gespräche (Seite {{page}} von {{pages}})",
+  "cb.convs": "💬 Gespräche",
+  "html.conv.missing": "Gespräch {{id}} existiert nicht im Datenbank.",
+  "btn.continue": "💬 Weiterreden",
+  "btn.history": "📖 Verlauf",
+  "cb.deleted": "🗑️ Gespräch wird gelöscht.",
+  "tokens": "Token",
+  "cb.new": "🤖 Einen Assistenten auswählen",
+  "html.new": "Wählen Sie einen <b>Assistenten</b>, mit dem Sie ein neues Gespräch beginnen wollen.",
+  "btn.new": "➕ Neues Gespräch",
+  "html.convs": "💬 <b>Gespräche</b>\n<i>Seite {{page}} von {{pages}}</i>",
+  "html.convs.empty": "💬 <b>Sie haben keine früheren Gespräche geführt.</b>"
+}

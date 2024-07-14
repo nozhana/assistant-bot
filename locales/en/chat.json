@@ -1,0 +1,17 @@
+{
+  "cb.chatting": "💬 Chatting",
+  "html.chatting": "You're now talking to <b>{{assistant}}</b>.",
+  "btn.leave": "🚫 Leave",
+  "html.transcription.failed": "❌ <b>Transcription failed.</b>",
+  "html.doc.upload.failed": "❌ <b>Failed to upload document.</b>",
+  "html.doc.upload.success": "📎 Attached document to assistant.\n📁 <b>Filename:</b> <code>{{filename}}</code>\n\n⏳ This file is set to expire after <b>{{count}} days</b> of inactivity.",
+  "cb.leave": "🚫 Left conversation.",
+  "html.response.audio.failed": "❌ <b>Failed to encode response audio.</b>",
+  "html.codeinterpreter.created": "🧑‍💻 <i>Running code...</i>",
+  "html.codeinterpreter.done": "🧑‍💻 <i>Code run successfully.</i>",
+  "html.codeinterpreter.logs": "<b>Console log \\></b>",
+  "html.filesearch.created": "📁 <i>Searching files...</i>",
+  "html.filesearch.done": "📁 <i>File search done.</i>",
+  "html.usage": "🗨️ <b>Prompt:</b> <code>{{promptTokens}} tokens</code>\n💬 <b>Completion:</b> <code>{{completionTokens}} tokens</code>\n\n💸 <b>Total:</b> <code>{{totalTokens}} tokens</code>",
+  "html.rename": "✨ Renamed conversation:"
+}

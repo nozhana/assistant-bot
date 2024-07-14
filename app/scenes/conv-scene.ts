@@ -1,7 +1,8 @@
-import { Scenes } from "telegraf";
+import { NarrowedContext, Scenes } from "telegraf";
 import BotContext from "../middlewares/bot-context";
-import { InlineKeyboardButton } from "telegraf/typings/core/types/typegram";
+import { Update } from "telegraf/typings/core/types/typegram";
 import { callbackQuery } from "telegraf/filters";
+import InlineKeyboard from "../util/inline-keyboard";
 
 const convScene = new Scenes.BaseScene<BotContext>("convScene");
 
@@ -9,235 +10,81 @@ convScene.enter(async (ctx) => {
   return listConversations(ctx);
 });
 
-convScene.use(async (ctx, next) => {
-  if (ctx.text?.startsWith("/")) {
-    await ctx.scene.leave();
-  }
-  return next();
+convScene.action(/conv\.list\.\d+/g, async (ctx) => {
+  const { prisma } = ctx;
+  const page = Number(ctx.match[0].split(".").pop());
+  const convsCount = await prisma.conversation.count({
+    where: { userId: ctx.from.id },
+  });
+  const pages = Math.ceil(convsCount / 10);
+
+  await ctx.answerCbQuery(ctx.t("conv:cb.convs.page", { page, pages }));
+  await ctx.deleteMessage();
+  return listConversations(ctx, page);
 });
 
-convScene.on(callbackQuery("data"), async (ctx) => {
+convScene.action("conv.back", async (ctx) => {
+  await ctx.answerCbQuery(ctx.t("conv:cb.convs"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.scene.reenter();
+});
+
+convScene.action("conv.asst", async (ctx) => {
+  return chooseAssistant(ctx);
+});
+
+convScene.action(/conv\.asst\.list\.\d+/g, async (ctx) => {
+  const page = Number(ctx.match[0].split(".").pop());
+  return chooseAssistant(ctx, page);
+});
+
+convScene.action("conv.asst.new", async (ctx) => {
+  await ctx.answerCbQuery(ctx.t("asst:cb.new"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.scene.enter("newAssistantScene");
+});
+
+convScene.action(/conv\.asst\.[^.]+/g, async (ctx) => {
+  const assistantId = ctx.match[0].split(".").pop()!;
   const { prisma } = ctx;
+  const newConversation = await prisma.conversation.create({
+    data: {
+      assistantId,
+      userId: ctx.from.id,
+    },
+    include: { assistant: true },
+  });
 
-  const data = ctx.callbackQuery.data.split(".");
+  return enterConversation(ctx, newConversation.id);
+});
 
-  const createNewAssistant = async () => {
-    await ctx.answerCbQuery("🤖 New Assistant");
-    await ctx.editMessageReplyMarkup(undefined);
-    return ctx.scene.enter("newAssistantScene");
-  };
+convScene.action(/conv\.[^.]+\.cont/g, async (ctx) => {
+  const conversationId = ctx.match[0].split(".")[1];
+  return enterConversation(ctx, conversationId);
+});
 
-  if (data[0] !== "conv") {
-    // FIXME: Handle callback query data mismatch
-    await ctx.answerCbQuery();
-    return ctx.scene.leave();
-  }
+convScene.action(/conv\.[^.]+\.del/g, async (ctx) => {
+  const conversationId = ctx.match[0].split(".")[1];
+  return deleteConversation(ctx, conversationId);
+});
 
-  if (data[1] === "list") {
-    const page = Number(data[2]);
-    const convsCount = await prisma.conversation.count({
-      where: { userId: ctx.from.id },
-    });
-    const pages = Math.ceil(convsCount / 10);
+convScene.action(/conv\.[^.]+\.hist/g, async (ctx) => {
+  const conversationId = ctx.match[0].split(".")[1];
+  return conversationHistory(ctx, conversationId);
+});
 
-    await ctx.answerCbQuery(`💬 Conversations (page ${page} of ${pages})`);
-    await ctx.deleteMessage();
-    return listConversations(ctx, page);
-  }
-
-  if (data[1] === "asst") {
-    if (data.length === 2) return chooseAssistant();
-    else if (data.length === 3)
-      return data[2] === "new"
-        ? createNewAssistant()
-        : createNewConversation(data[2]);
-    else if (data.length === 4 && data[2] === "list")
-      return chooseAssistant(Number(data[3]));
-  }
-
-  if (data[1] === "back") {
-    await ctx.answerCbQuery("💬 Conversations");
-    await ctx.editMessageReplyMarkup(undefined);
-    return ctx.scene.reenter();
-  }
-
-  if (data.length === 3) {
-    switch (data[2]) {
-      case "cont":
-        return enterConversation(data[1]);
-      case "del":
-        return deleteConversation(data[1]);
-      case "hist":
-        return conversationHistory(data[1]);
-      default:
-        await ctx.answerCbQuery("💬 Conversations");
-        await ctx.editMessageReplyMarkup(undefined);
-        return ctx.scene.reenter();
-    }
-  }
-
+convScene.action(/conv\.[^.]+$/g, async (ctx) => {
+  const { prisma } = ctx;
+  const conversationId = ctx.match[0].split(".").pop()!;
   const exists = await prisma.conversation.count({
-    where: { id: data[1] },
+    where: { id: conversationId },
   });
 
   if (!exists) {
-    return ctx.reply(`Conversation ${data[1]} doesn't exist in the database.`);
+    return ctx.reply(ctx.t("conv:html.conv.missing"));
   }
 
-  return showConvDetails(data[1]);
-
-  async function showConvDetails(conversationId: string) {
-    const conversation = await prisma.conversation.findUniqueOrThrow({
-      where: { id: conversationId },
-      select: { title: true, assistant: true },
-    });
-
-    const buttons: InlineKeyboardButton[][] = [];
-
-    buttons.push([
-      {
-        text: "💬 Continue",
-        callback_data: `conv.${conversationId}.cont`,
-      },
-      {
-        text: "🗑️ Delete",
-        callback_data: `conv.${conversationId}.del`,
-      },
-    ]);
-
-    buttons.push([
-      { text: "📖 History", callback_data: `conv.${conversationId}.hist` },
-    ]);
-
-    buttons.push([
-      { text: "👈 Back", callback_data: `conv.${conversationId}.back` },
-    ]);
-
-    await ctx.answerCbQuery(
-      `💬 ${conversation.title ?? conversation.assistant.name}`
-    );
-    await ctx.editMessageReplyMarkup(undefined);
-    return ctx.replyWithHTML(
-      `💬 <b>${conversation.title ?? "Undefined"}</b>
-🤖 ${conversation.assistant.name}`,
-      {
-        reply_markup: {
-          inline_keyboard: buttons,
-        },
-      }
-    );
-  }
-
-  async function deleteConversation(conversationId: string) {
-    await prisma.message.deleteMany({ where: { conversationId } });
-    await prisma.conversation.delete({ where: { id: conversationId } });
-    await ctx.answerCbQuery("🗑️ Deleted Conversation.");
-    await ctx.editMessageReplyMarkup(undefined);
-    return ctx.scene.reenter();
-  }
-
-  async function conversationHistory(conversationId: string) {
-    const conversation = await prisma.conversation.findUniqueOrThrow({
-      where: { id: conversationId },
-      include: { messages: true, assistant: true },
-    });
-
-    for (let message of conversation.messages) {
-      const chunks = message.content.match(/[\s\S]{1,3895}/g) ?? [
-        message.content,
-      ];
-      for (let chunk of chunks) {
-        try {
-          await ctx.replyWithMarkdown(
-            `**${
-              message.role === "ASSISTANT"
-                ? "🤖 " + conversation.assistant.name
-                : "👤 " + ctx.from.first_name
-            }**
-
-${chunk}
-💸 **${message.tokens} tokens**`
-          );
-        } catch (error) {
-          await ctx.sendMessage(
-            `${
-              message.role === "ASSISTANT"
-                ? "🤖 " + conversation.assistant.name
-                : "👤 " + ctx.from.first_name
-            }
-
-${chunk}
-💸 ${message.tokens} tokens`
-          );
-        }
-      }
-    }
-
-    return showConvDetails(conversationId);
-  }
-
-  async function createNewConversation(assistantId: string) {
-    const newConversation = await prisma.conversation.create({
-      data: {
-        assistantId,
-        userId: ctx.from.id,
-      },
-      include: { assistant: true },
-    });
-
-    return enterConversation(newConversation.id);
-  }
-
-  async function enterConversation(conversationId: string) {
-    await ctx.answerCbQuery("💬 Chatting");
-    await ctx.editMessageReplyMarkup(undefined);
-    return ctx.scene.enter("chatScene", { conversationId });
-  }
-
-  async function chooseAssistant(page: number = 1) {
-    const assistants = await prisma.assistant.findMany({
-      where: {
-        OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
-      },
-    });
-    const assistantsCount = await prisma.assistant.count({
-      where: {
-        OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
-      },
-    });
-    const pages = Math.ceil(assistantsCount / 10);
-
-    const buttons: InlineKeyboardButton[][] = [];
-    buttons.push([
-      { text: "➕ New assistant", callback_data: "conv.asst.new" },
-    ]);
-    assistants.forEach((a) =>
-      buttons.push([{ text: a.name, callback_data: "conv.asst." + a.id }])
-    );
-    const navRow: InlineKeyboardButton[] = [];
-
-    if (page > 1)
-      navRow.push({
-        text: `⬅️ Page ${page - 1}`,
-        callback_data: `conv.asst.list.${page - 1}`,
-      });
-
-    if (page < pages)
-      navRow.push({
-        text: `Page ${page + 1} ➡️`,
-        callback_data: `conv.asst.list.${page + 1}`,
-      });
-
-    if (navRow.length) buttons.push(navRow);
-    buttons.push([{ text: "👈 Back", callback_data: "conv.back" }]);
-
-    await ctx.answerCbQuery("🤖 Choose assistant");
-    await ctx.editMessageReplyMarkup(undefined);
-    return ctx.replyWithHTML(
-      "Choose an <b>assistant</b> to start a new conversation with.",
-      { reply_markup: { inline_keyboard: buttons } }
-    );
-  }
+  return showConvDetails(ctx, conversationId);
 });
 
 async function listConversations(ctx: BotContext, page: number = 1) {
@@ -255,37 +102,168 @@ async function listConversations(ctx: BotContext, page: number = 1) {
   });
   const pages = Math.ceil(convsCount / 10);
 
-  const buttons: InlineKeyboardButton[][] = [];
-  buttons.push([{ text: "➕ New conversation", callback_data: "conv.asst" }]);
-  conversations.forEach((c) =>
-    buttons.push([
-      { text: c.title ?? c.assistant.name, callback_data: `conv.${c.id}` },
-    ])
-  );
-
-  const navRow: InlineKeyboardButton[] = [];
-
-  if (page > 1)
-    navRow.push({
-      text: `⬅️ Page ${page - 1}`,
-      callback_data: `conv.list.${page - 1}`,
-    });
-
-  if (page < pages)
-    navRow.push({
-      text: `Page ${page + 1} ➡️`,
-      callback_data: `conv.list.${page + 1}`,
-    });
-
-  if (navRow.length) buttons.push(navRow);
+  const keyboard = new InlineKeyboard()
+    .text(ctx.t("conv:btn.new"), "conv.asst")
+    .rows(
+      ...conversations.map((e) => [
+        InlineKeyboard.text(e.title ?? e.assistant.name, `conv.${e.id}`),
+      ])
+    )
+    .row(
+      InlineKeyboard.text(
+        ctx.t("btn.prev", { page: page - 1 }),
+        `conv.list.${page - 1}`,
+        page <= 1
+      ),
+      InlineKeyboard.text(
+        ctx.t("btn.next", { page: page + 1 }),
+        `conv.list.${page + 1}`,
+        page >= pages
+      )
+    );
 
   const response = convsCount
-    ? `💬 <b>Conversations</b>\n<i>Page ${page} of ${pages}</i>`
-    : "💬 <b>You have no previous conversations.</b>";
+    ? ctx.t("conv:html.convs", { page, pages })
+    : ctx.t("conv:html.convs.empty");
 
   return ctx.replyWithHTML(response, {
-    reply_markup: { inline_keyboard: buttons },
+    reply_markup: keyboard,
   });
+}
+
+async function chooseAssistant(
+  ctx: NarrowedContext<BotContext, Update.CallbackQueryUpdate>,
+  page: number = 1
+) {
+  const { prisma } = ctx;
+  const assistants = await prisma.assistant.findMany({
+    where: {
+      OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
+    },
+  });
+  const assistantsCount = await prisma.assistant.count({
+    where: {
+      OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
+    },
+  });
+  const pages = Math.ceil(assistantsCount / 10);
+
+  const keyboard = new InlineKeyboard()
+    .text(ctx.t("asst:btn.new"), "conv.asst.new")
+    .rows(
+      ...assistants.map((e) => [
+        InlineKeyboard.text(e.name, `conv.asst.${e.id}`),
+      ])
+    )
+    .row(
+      InlineKeyboard.text(
+        ctx.t("btn.prev", { page: page - 1 }),
+        `conv.asst.list.${page - 1}`,
+        page <= 1
+      ),
+      InlineKeyboard.text(
+        ctx.t("btn.next", { page: page + 1 }),
+        `conv.asst.list.${page + 1}`,
+        page >= pages
+      )
+    )
+    .text(ctx.t("btn.back"), "conv.back");
+
+  await ctx.answerCbQuery(ctx.t("conv:cb.new"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.replyWithHTML(ctx.t("conv:html.new"), {
+    reply_markup: keyboard,
+  });
+}
+
+async function enterConversation(ctx: BotContext, conversationId: string) {
+  await ctx.answerCbQuery(ctx.t("chat:cb.chatting"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.scene.enter("chatScene", { conversationId });
+}
+
+async function deleteConversation(ctx: BotContext, conversationId: string) {
+  const { prisma } = ctx;
+  await prisma.message.deleteMany({ where: { conversationId } });
+  await prisma.conversation.delete({ where: { id: conversationId } });
+  await ctx.answerCbQuery(ctx.t("conv:cb.deleted"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.scene.reenter();
+}
+
+async function conversationHistory(
+  ctx: NarrowedContext<BotContext, Update.CallbackQueryUpdate>,
+  conversationId: string
+) {
+  const { prisma } = ctx;
+  const conversation = await prisma.conversation.findUniqueOrThrow({
+    where: { id: conversationId },
+    include: { messages: true, assistant: true },
+  });
+
+  for (let message of conversation.messages) {
+    const chunks = message.content.match(/[\s\S]{1,3895}/g) ?? [
+      message.content,
+    ];
+    for (let chunk of chunks) {
+      try {
+        await ctx.replyWithMarkdown(
+          `**${
+            message.role === "ASSISTANT"
+              ? "🤖 " + conversation.assistant.name
+              : "👤 " + ctx.from.first_name
+          }**
+
+${chunk}
+💸 **${message.tokens} ${ctx.t("conv:tokens")}**`
+        );
+      } catch (error) {
+        await ctx.reply(
+          `${
+            message.role === "ASSISTANT"
+              ? "🤖 " + conversation.assistant.name
+              : "👤 " + ctx.from.first_name
+          }
+
+${chunk}
+💸 ${message.tokens} ${ctx.t("conv:tokens")}`
+        );
+      }
+    }
+  }
+
+  return showConvDetails(ctx, conversationId);
+}
+
+async function showConvDetails(ctx: BotContext, conversationId: string) {
+  const { prisma } = ctx;
+  const conversation = await prisma.conversation.findUniqueOrThrow({
+    where: { id: conversationId },
+    select: { title: true, assistant: true },
+  });
+
+  const keyboard = new InlineKeyboard()
+    .row(
+      InlineKeyboard.text(
+        ctx.t("conv:btn.continue"),
+        `conv.${conversationId}.cont`
+      ),
+      InlineKeyboard.text(ctx.t("btn.delete"), `conv.${conversationId}.del`)
+    )
+    .text(ctx.t("conv:btn.history"), `conv.${conversationId}.hist`)
+    .text(ctx.t("btn.back"), `conv.back`);
+
+  await ctx.answerCbQuery(
+    `💬 ${conversation.title ?? conversation.assistant.name}`
+  );
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.replyWithHTML(
+    `💬 <b>${conversation.title ?? "Undefined"}</b>
+🤖 ${conversation.assistant.name}`,
+    {
+      reply_markup: keyboard,
+    }
+  );
 }
 
 export default convScene;

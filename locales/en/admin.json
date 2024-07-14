@@ -1,0 +1,11 @@
+{
+  "btn.menu": "👑 Admin menu",
+  "btn.users": "👥 All Users",
+  "btn.broadcast": "📣 Broadcast",
+  "html.menu": "👑 <b>Management</b>",
+  "cb.menu": "👑 Management",
+  "cb.users": "👥 All Users (page {{page}} of {{pages}})",
+  "html.users": "👥 <b>All Users</b>\n<i>Page {{page}} of {{pages}}</i>",
+  "cb.user": "👤 User {{id}}",
+  "html.user": "👤 <b>User details</b>\n\n🧑 First name: <code>{{firstName}}</code>\n#️⃣ Telegram ID: <code>{{id}}</code>\n💬 Conversations: <code>{{convLength}} conversations</code>\n🤖 Assistants: <code>{{asstLength}} assistants</code>\n\n<a href=\"tg://user?id={{id}}\">🔗 Go to user profile</a>"
+}

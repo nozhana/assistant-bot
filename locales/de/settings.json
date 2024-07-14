@@ -1,0 +1,13 @@
+{
+  "btn.response.text": "💬 Auf Textausgabe umschalten",
+  "btn.response.voice": "🔈 Auf Sprachausgabe umschalten",
+  "btn.voice": "🗣️ Stimme ändern",
+  "html.settings": "⚙️ <b>Einstellungen</b>",
+  "cb.settings": "⚙️ Einstellungen",
+  "cb.response.text": "💬 Auf Textausgabe umgeschaltet.",
+  "cb.response.voice": "🔈 Auf Sprachausgabe umgeschaltet.",
+  "html.voice": "🗣️ Ausgewählte Stimme: <b>{{voice}}</b>",
+  "cb.voice": "🗣️ Stimmen",
+  "cb.voice.changed": "🗣️ Stimme auf {{voice}} geändert.",
+  "html.lang.change": "🌐 <b>Sprache des Bots ändern</b>"
+}

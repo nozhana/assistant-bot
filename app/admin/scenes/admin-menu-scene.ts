@@ -1,19 +1,17 @@
 import { Scenes } from "telegraf";
 import BotContext from "../../middlewares/bot-context";
-import { InlineKeyboardButton } from "telegraf/typings/core/types/typegram";
+import InlineKeyboard from "../../util/inline-keyboard";
 
 const adminMenuScene = new Scenes.BaseScene<BotContext>("adminMenuScene");
 
 adminMenuScene.enter(async (ctx) => {
-  const buttons: InlineKeyboardButton[][] = [];
+  const keyboard = new InlineKeyboard().row(
+    InlineKeyboard.text(ctx.t("admin:btn.users"), "admin.users.1"),
+    InlineKeyboard.text(ctx.t("admin:btn.broadcast"), "admin.broadcast")
+  );
 
-  buttons.push([
-    { text: "👥 Users", callback_data: "admin.users.1" },
-    { text: "📣 Broadcast", callback_data: "admin.broadcast" },
-  ]);
-
-  return ctx.replyWithHTML("👑 <b>Admin menu</b>", {
-    reply_markup: { inline_keyboard: buttons },
+  return ctx.replyWithHTML(ctx.t("admin:html.menu"), {
+    reply_markup: keyboard,
   });
 });
 
@@ -24,43 +22,34 @@ adminMenuScene.action(/admin\.users\.(\d+)/g, async (ctx) => {
   const usersCount = await prisma.user.count();
   const pages = Math.ceil(usersCount / 10);
 
-  const buttons: InlineKeyboardButton[][] = [];
+  const keyboard = new InlineKeyboard()
+    .rows(
+      ...users.map((user) => [
+        InlineKeyboard.text(
+          `👤 ${user.firstName} - ${user.id}`,
+          `admin.user.${user.id}`
+        ),
+      ])
+    )
+    .row(
+      InlineKeyboard.text(
+        ctx.t("btn.prev", { page: page - 1 }),
+        `admin.users.${page - 1}`,
+        page <= 1
+      ),
+      InlineKeyboard.text(
+        ctx.t("btn.next", { page: page + 1 }),
+        `admin.users.${page + 1}`,
+        page >= pages
+      )
+    )
+    .text(ctx.t("btn.back"), "admin.reset");
 
-  for (let user of users) {
-    buttons.push([
-      {
-        text: `👤 ${user.firstName} - ${user.id}`,
-        callback_data: `admin.user.${user.id}`,
-      },
-    ]);
-  }
-
-  let navRow: InlineKeyboardButton[] = [];
-
-  if (page > 1)
-    navRow.push({
-      text: `⬅️ Page ${page - 1}`,
-      callback_data: `admin.users.${page - 1}`,
-    });
-
-  if (page < pages)
-    navRow.push({
-      text: `Page ${page + 1} ➡️`,
-      callback_data: `admin.users.${page + 1}`,
-    });
-
-  if (navRow.length) buttons.push(navRow);
-
-  buttons.push([{ text: "👈 Back", callback_data: "admin.reset" }]);
-
-  await ctx.answerCbQuery(`👥 Users (page ${page} of ${pages})`);
-  return ctx.editMessageText(
-    `👥 <b>Users</b>\n<i>Page ${page} of ${pages}</i>`,
-    {
-      reply_markup: { inline_keyboard: buttons },
-      parse_mode: "HTML",
-    }
-  );
+  await ctx.answerCbQuery(ctx.t("admin:cb.users", { page, pages }));
+  return ctx.editMessageText(ctx.t("admin:html.users", { page, pages }), {
+    reply_markup: keyboard,
+    parse_mode: "HTML",
+  });
 });
 
 adminMenuScene.action(/admin\.user\.(.+)/g, async (ctx) => {
@@ -72,21 +61,19 @@ adminMenuScene.action(/admin\.user\.(.+)/g, async (ctx) => {
     include: { conversations: true, assistants: true, messages: true },
   });
 
-  await ctx.answerCbQuery(`👤 User ${user.id}`);
+  await ctx.answerCbQuery(ctx.t("admin:cb.user", { id: user.id }));
   await ctx.editMessageReplyMarkup(undefined);
   return ctx.replyWithHTML(
-    `👤 <b>User details</b>
-
-🧑 Name: <code>${user.firstName}</code>
-#️⃣ Telegram ID: <code>${user.id}</code>
-💬 Conversations: <code>${user.conversations.length} conversations</code>
-🤖 Assistants: <code>${user.assistants.length} assistants</code>
-
-<a href="tg://user?id=${user.id}">🔗 Open user profile</a>`,
+    ctx.t("admin:html.user", {
+      id: user.id,
+      firstName: user.firstName,
+      convLength: user.conversations.length,
+      asstLength: user.assistants.length,
+    }),
     {
       reply_markup: {
         inline_keyboard: [
-          [{ text: "👈 Back", callback_data: "admin.users.1" }],
+          [{ text: ctx.t("btn.back"), callback_data: "admin.users.1" }],
         ],
       },
     }
@@ -94,7 +81,7 @@ adminMenuScene.action(/admin\.user\.(.+)/g, async (ctx) => {
 });
 
 adminMenuScene.action("admin.reset", async (ctx) => {
-  await ctx.answerCbQuery("👑 Admin menu");
+  await ctx.answerCbQuery(ctx.t("admin:cb.menu"));
   await ctx.editMessageReplyMarkup(undefined);
   return ctx.scene.reenter();
 });

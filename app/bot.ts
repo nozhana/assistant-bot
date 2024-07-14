@@ -14,6 +14,7 @@ import OpenAI from "openai";
 import adminBot from "./admin/composer";
 import asstInlineHandler from "./handlers/asst-inline-handler";
 import asstGuestCallbackHandler from "./handlers/asst-guest-callback-handler";
+import i18nMiddleware from "./middlewares/i18n-middleware";
 
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 const store = SQLite<SessionData>({
@@ -26,6 +27,13 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 bot.use((ctx, next) => {
   ctx.prisma ??= prisma;
   ctx.openai ??= openai;
+  return next();
+});
+
+bot.use(i18nMiddleware);
+bot.use(async (ctx, next) => {
+  if (!ctx.session) return next();
+  await ctx.i18n.changeLanguage(ctx.session.settings.locale);
   return next();
 });
 

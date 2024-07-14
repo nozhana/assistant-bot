@@ -1,141 +1,161 @@
 import { Scenes } from "telegraf";
 
 import BotContext from "../middlewares/bot-context";
-import { InlineKeyboardButton } from "telegraf/typings/core/types/typegram";
-import { callbackQuery } from "telegraf/filters";
+import InlineKeyboard from "../util/inline-keyboard";
+import { languages } from "../middlewares/i18n-middleware";
+import capitalize from "../util/capitalize";
 
 const settingsScene = new Scenes.BaseScene<BotContext>("settingsScene");
 
 settingsScene.enter(async (ctx) => {
-  const buttons: InlineKeyboardButton[][] = [];
-
-  buttons.push([
-    {
-      text: ctx.session.settings.isVoiceResponse
-        ? "💬 Switch to text response"
-        : "🔈 Switch to voice response",
-      callback_data:
-        "settings.vc." + (ctx.session.settings.isVoiceResponse ? "off" : "on"),
-    },
-  ]);
-
-  buttons.push([
-    {
-      text: "🗣️ Change voice",
-      callback_data: "settings.vc.change",
-    },
-  ]);
-
-  buttons.push([
-    {
-      text:
-        ctx.session.settings.language === "en-US"
-          ? "🇺🇸 English (US)"
-          : ctx.session.settings.language === "de"
-          ? "🇩🇪 Deutsch"
-          : "🇮🇷 فارسی",
-      callback_data: "settings.lang.change",
-    },
-  ]);
-
   const admins = process.env.BOT_ADMINS?.split(",").map(Number) ?? [];
-  if (ctx.from && admins.includes(ctx.from.id))
-    buttons.push([{ text: "👑 Admin menu", callback_data: "admin.menu" }]);
 
-  return ctx.replyWithHTML("⚙️ <b>Settings</b>", {
-    reply_markup: { inline_keyboard: buttons },
+  const keyboard = new InlineKeyboard()
+    .text(
+      ctx.t(
+        ctx.session.settings.isVoiceResponse
+          ? "settings:btn.response.text"
+          : "settings:btn.response.voice"
+      ),
+      `settings.vc.${ctx.session.settings.isVoiceResponse ? "off" : "on"}`
+    )
+    .text(ctx.t("settings:btn.voice"), "settings.vc.change")
+    .text(
+      ctx.i18n.language === "en"
+        ? "🇺🇸 English"
+        : ctx.i18n.language === "de"
+        ? "🇩🇪 Deutsch"
+        : "🇮🇷 فارسی",
+      "settings.lang"
+    )
+    .text(
+      ctx.t("admin:btn.menu"),
+      "admin.menu",
+      !(ctx.from && admins.includes(ctx.from.id))
+    );
+
+  return ctx.replyWithHTML(ctx.t("settings:html.settings"), {
+    reply_markup: keyboard,
   });
 });
 
-settingsScene.use(async (ctx, next) => {
-  if (ctx.text?.startsWith("/")) {
-    await ctx.scene.leave();
-  }
-  return next();
+settingsScene.action("settings.back", async (ctx) => {
+  await ctx.answerCbQuery("⚙️ Settings");
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.scene.reenter();
 });
 
-settingsScene.on(callbackQuery("data"), async (ctx, next) => {
-  const data = ctx.callbackQuery.data.split(".");
-  if (data[0] !== "settings") return next();
+settingsScene.action("settings.vc.off", async (ctx) => {
+  ctx.session.settings.isVoiceResponse = false;
+  await ctx.answerCbQuery(ctx.t("settings:cb.response.text"), {
+    show_alert: true,
+  });
+  await ctx.deleteMessage();
+  return ctx.scene.reenter();
+});
 
-  switch (data[1]) {
-    case "vc":
-      switch (data[2]) {
-        case "off":
-          ctx.session.settings.isVoiceResponse = false;
-          await ctx.answerCbQuery("💬 Switched to text response.", {
-            show_alert: true,
-          });
-          await ctx.deleteMessage();
-          return ctx.scene.reenter();
-        case "on":
-          ctx.session.settings.isVoiceResponse = true;
-          await ctx.answerCbQuery("🔈 Switched to voice response.", {
-            show_alert: true,
-          });
-          await ctx.deleteMessage();
-          return ctx.scene.reenter();
-        case "change":
-          return voicesMenu();
-        default:
-          return setVoice(
-            data[2] as "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer"
-          );
-      }
-      break;
-    case "back":
-      await ctx.answerCbQuery("⚙️ Settings");
-      await ctx.editMessageReplyMarkup(undefined);
-      return ctx.scene.reenter();
-    default:
-      await ctx.answerCbQuery("🛑 Not implemented", { show_alert: true });
-      return ctx.scene.reenter();
-  }
+settingsScene.action("settings.vc.on", async (ctx) => {
+  ctx.session.settings.isVoiceResponse = true;
+  await ctx.answerCbQuery(ctx.t("settings:cb.response.voice"), {
+    show_alert: true,
+  });
+  await ctx.deleteMessage();
+  return ctx.scene.reenter();
+});
 
-  async function voicesMenu() {
-    const buttons: InlineKeyboardButton[][] = [];
+settingsScene.action("settings.vc.change", async (ctx) => {
+  const keyboard = new InlineKeyboard();
 
-    const voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
+  const voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
 
-    for (let index = 0; index < voices.length; index += 2) {
-      const element = voices[index];
-      const nextElement = index < voices.length - 1 && voices[index + 1];
-      const row: InlineKeyboardButton[] = [];
-      row.push({
-        text:
-          ctx.session.settings.voice === element ? `✅ ${element}` : element,
-        callback_data: "settings.vc." + element,
-      });
-      if (nextElement)
-        row.push({
-          text:
-            ctx.session.settings.voice === nextElement
-              ? `✅ ${nextElement}`
-              : nextElement,
-          callback_data: "settings.vc." + nextElement,
-        });
+  for (let index = 0; index < voices.length; index += 2) {
+    const element = voices[index];
+    const nextElement = (index < voices.length - 1 && voices[index + 1]) || "";
 
-      buttons.push(row);
-    }
-
-    buttons.push([{ text: "👈 Back", callback_data: "settings.back" }]);
-
-    await ctx.answerCbQuery("🗣️ Voices");
-    await ctx.editMessageReplyMarkup(undefined);
-    return ctx.replyWithHTML(
-      `🗣️ Selected voice: <b>${ctx.session.settings.voice}</b>`,
-      { reply_markup: { inline_keyboard: buttons } }
+    keyboard.row(
+      InlineKeyboard.text(
+        ctx.session.settings.voice === element
+          ? `✅ ${capitalize(element)}`
+          : capitalize(element),
+        `settings.vc.${element}`
+      ),
+      InlineKeyboard.text(
+        ctx.session.settings.voice === nextElement
+          ? `✅ ${capitalize(nextElement)}`
+          : capitalize(nextElement),
+        `settings.vc.${nextElement}`,
+        !nextElement
+      )
     );
   }
 
-  async function setVoice(
-    voice: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer"
-  ) {
-    ctx.session.settings.voice = voice;
-    ctx.answerCbQuery("🗣️ Voice changed to " + voice, { show_alert: true });
+  keyboard.text(ctx.t("btn.back"), "settings.back");
+
+  await ctx.answerCbQuery(ctx.t("settings:cb.voice"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.replyWithHTML(
+    ctx.t("settings:html.voice", {
+      voice: capitalize(ctx.session.settings.voice),
+    }),
+    { reply_markup: keyboard }
+  );
+});
+
+settingsScene.action(
+  /settings\.vc\.(alloy|echo|fable|onyx|nova|shimmer)/g,
+  async (ctx) => {
+    const voice = ctx.match[0].split(".").pop();
+    if (!voice) return ctx.answerCbQuery();
+    ctx.session.settings.voice = voice as
+      | "alloy"
+      | "echo"
+      | "fable"
+      | "onyx"
+      | "nova"
+      | "shimmer";
+
+    ctx.answerCbQuery(
+      ctx.t("settings:cb.voice.changed", { voice: capitalize(voice) }),
+      {
+        show_alert: true,
+      }
+    );
     ctx.editMessageReplyMarkup(undefined);
     return ctx.scene.reenter();
   }
+);
+
+settingsScene.action("settings.lang", async (ctx) => {
+  const languageKeys: { [key: string]: string } = {
+    en: "🇬🇧 English",
+    de: "🇩🇪 Deutsch",
+    fa: "🇮🇷 فارسی",
+  };
+
+  const keyboard = new InlineKeyboard()
+    .row(
+      ...languages
+        .filter((e) => e !== ctx.i18n.language)
+        .map((e) => InlineKeyboard.text(languageKeys[e], `settings.lang.${e}`))
+    )
+    .text(ctx.t("btn.back"), "settings.back");
+
+  return ctx.replyWithHTML(ctx.t("settings:html.lang.change"), {
+    reply_markup: keyboard,
+  });
+});
+
+settingsScene.action(/settings\.lang\.(en|de|fa)/g, async (ctx) => {
+  const lang = ctx.match[0].split(".").pop() as "en" | "de" | "fa";
+  ctx.session.settings.locale = lang;
+  const t = await ctx.i18n.changeLanguage(lang);
+  await ctx.answerCbQuery(t("lang.feedback"), { show_alert: true });
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.scene.reenter();
+});
+
+settingsScene.action(/settings\..+/g, async (ctx) => {
+  return ctx.answerCbQuery(ctx.t("coming.soon"), { show_alert: true });
 });
 
 export default settingsScene;

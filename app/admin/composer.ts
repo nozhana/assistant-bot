@@ -9,7 +9,7 @@ adminBot.use(stage.middleware());
 
 adminBot.command("admin", (ctx) => ctx.scene.enter("adminMenuScene"));
 adminBot.action("admin.menu", (ctx) => {
-  ctx.answerCbQuery("👑 Admin menu");
+  ctx.answerCbQuery(ctx.t("admin:cb.menu"));
   ctx.editMessageReplyMarkup(undefined);
   ctx.scene.enter("adminMenuScene");
 });

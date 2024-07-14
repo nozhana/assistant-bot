@@ -1,16 +1,18 @@
 import { Scenes } from "telegraf";
 import BotContext from "../middlewares/bot-context";
-import { callbackQuery, message } from "telegraf/filters";
-import { InlineKeyboardButton } from "telegraf/typings/core/types/typegram";
+import { message } from "telegraf/filters";
+import InlineKeyboard from "../util/inline-keyboard";
 
 const newAssistantScene = new Scenes.BaseScene<BotContext>("newAssistantScene");
 
 newAssistantScene.enter(async (ctx) => {
   ctx.scene.session.step = 0;
-  return ctx.replyWithHTML("🤖 Enter a new <b>name</b> for the assistant.", {
-    reply_markup: {
-      inline_keyboard: [[{ text: "❌ Cancel", callback_data: "asst.cancel" }]],
-    },
+  const keyboard = new InlineKeyboard().text(
+    ctx.t("btn.cancel"),
+    "asst.cancel"
+  );
+  return ctx.replyWithHTML(ctx.t("asst:html.asst.new.name"), {
+    reply_markup: keyboard,
   });
 });
 
@@ -27,16 +29,13 @@ newAssistantScene.on(message("text"), async (ctx) => {
   async function storeNameAndGetInstructions() {
     ctx.scene.state = { name: ctx.text };
     ctx.scene.session.step = 1;
-    return ctx.replyWithHTML(
-      "☝️ Enter the <b>instructions</b> for your assistant.",
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "❌ Cancel", callback_data: "asst.cancel" }],
-          ],
-        },
-      }
+    const keyboard = new InlineKeyboard().text(
+      ctx.t("btn.cancel"),
+      "asst.cancel"
     );
+    return ctx.replyWithHTML(ctx.t("asst:html.asst.new.inst"), {
+      reply_markup: keyboard,
+    });
   }
 
   async function storeInstructionsAndConfirm() {
@@ -44,126 +43,84 @@ newAssistantScene.on(message("text"), async (ctx) => {
     const asstName = (ctx.scene.state as { name: string; instructions: string })
       .name;
     ctx.scene.session.step = 2;
-    return ctx.replyWithHTML(
-      `👀 Create assistant with this configuration?
 
-🤖 <b>Name:</b> <code>${asstName}</code>
-☝️ <b>Instructions:</b>
-<code>${ctx.text}</code>`,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: "❌ Cancel", callback_data: "asst.cancel" },
-              { text: "✏️ Try again", callback_data: "asst.reset" },
-            ],
-            [{ text: "✅ Create", callback_data: "asst.create" }],
-          ],
-        },
-      }
+    const keyboard = new InlineKeyboard()
+      .row(
+        InlineKeyboard.text(ctx.t("btn.cancel"), "asst.cancel"),
+        InlineKeyboard.text(ctx.t("asst:btn.retry"), "asst.restart")
+      )
+      .text(ctx.t("asst:btn.create"), "asst.create");
+
+    return ctx.replyWithHTML(
+      ctx.t("asst:html.asst.new.confirm") +
+        "\n\n" +
+        ctx.t("asst:html.asst", {
+          assistant: asstName,
+          instructions: ctx.text,
+        }),
+      { reply_markup: keyboard }
     );
   }
 });
 
-newAssistantScene.on(callbackQuery("data"), async (ctx, next) => {
-  const { prisma, openai } = ctx;
-  const data = ctx.callbackQuery.data.split(".");
-  if (data[0] !== "asst") return next();
+newAssistantScene.action("asst.cancel", async (ctx) => {
+  await ctx.answerCbQuery(ctx.t("asst:cb.cancelled"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.scene.enter("assistantScene");
+});
 
-  switch (data[1]) {
-    case "cancel":
-      await ctx.answerCbQuery("❌ Cancelled.");
-      await ctx.editMessageReplyMarkup(undefined);
-      return ctx.scene.leave();
-    case "reset":
-      await ctx.answerCbQuery("🔄 Restarted process.");
-      await ctx.editMessageReplyMarkup(undefined);
-      return ctx.scene.reenter();
-    case "create":
-      return createNewAssistantAndLeave();
-    default:
-      return next();
-  }
+newAssistantScene.action("asst.restart", async (ctx) => {
+  await ctx.answerCbQuery(ctx.t("asst:cb.restarted"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.scene.reenter();
+});
 
-  async function createNewAssistantAndLeave() {
-    const { name, instructions } = ctx.scene.state as {
-      name: string;
-      instructions: string;
-    };
-    await ctx.answerCbQuery("🛜 Creating assistant...");
-    await ctx.editMessageReplyMarkup(undefined);
-    const waitMessage = await ctx.replyWithHTML(
-      "<i>Creating new assistant, please wait...</i>"
-    );
-    await ctx.sendChatAction("typing");
-    const remoteAsst = await openai.beta.assistants.create({
-      model: "gpt-4o",
+newAssistantScene.action("asst.create", async (ctx) => {
+  const { openai, prisma } = ctx;
+  const { name, instructions } = ctx.scene.state as {
+    name: string;
+    instructions: string;
+  };
+  await ctx.answerCbQuery(ctx.t("asst:cb.creating"));
+  await ctx.editMessageReplyMarkup(undefined);
+  const waitMessage = await ctx.replyWithHTML(ctx.t("asst:html.creating"));
+  await ctx.sendChatAction("typing");
+  const remoteAsst = await openai.beta.assistants.create({
+    model: "gpt-4o",
+    name,
+    instructions,
+    temperature: 0.7,
+  });
+  const assistant = await prisma.assistant.create({
+    data: {
       name,
       instructions,
-      temperature: 0.7,
-    });
-    const localAsst = await prisma.assistant.create({
-      data: {
-        name,
-        instructions,
-        serversideId: remoteAsst.id,
-        userId: ctx.from.id,
-      },
-    });
-    await ctx.replyWithHTML(`❇️ <b>Created new assistant successfully.</b>`);
-    await ctx.deleteMessage(waitMessage.message_id);
-    await ctx.scene.enter("assistantScene", undefined, true);
-    return showAssistantDetails(localAsst);
-  }
+      serversideId: remoteAsst.id,
+      userId: ctx.from.id,
+    },
+  });
+  await ctx.replyWithHTML(ctx.t("asst:html.created"));
+  await ctx.deleteMessage(waitMessage.message_id);
+  await ctx.scene.enter("assistantScene", undefined, true);
 
-  async function showAssistantDetails(assistant: {
-    id: string;
-    name: string;
-    instructions: string | null;
-  }) {
-    const buttons: InlineKeyboardButton[][] = [];
+  const keyboard = new InlineKeyboard()
+    .row(
+      InlineKeyboard.text(ctx.t("asst:btn.name"), `asst.${assistant.id}.name`),
+      InlineKeyboard.text(ctx.t("asst:btn.inst"), `asst.${assistant.id}.inst`)
+    )
+    .text(ctx.t("asst:btn.conv.new"), `asst.${assistant.id}.chat`)
+    .text(ctx.t("asst:btn.codeinterpreter"), `asst.${assistant.id}.code`)
+    .switchToChat(ctx.t("asst:btn.share"), assistant.name)
+    .text(ctx.t("btn.delete"), `asst.${assistant.id}.del`)
+    .text(ctx.t("asst:btn.back.assts"), "asst.back");
 
-    buttons.push([
-      { text: "✏️ Name", callback_data: `asst.${assistant.id}.name` },
-      { text: "✏️ Instructions", callback_data: `asst.${assistant.id}.inst` },
-    ]);
-    buttons.push([
-      {
-        text: "❇️ New conversation",
-        callback_data: `asst.${assistant.id}.chat`,
-      },
-    ]);
-    buttons.push([
-      {
-        text: "🧑‍💻 Code interpreter",
-        callback_data: `asst.${assistant.id}.code`,
-      },
-    ]);
-    buttons.push([
-      {
-        text: "↗️ Share assistant",
-        switch_inline_query_chosen_chat: {
-          allow_bot_chats: false,
-          allow_channel_chats: false,
-          allow_group_chats: false,
-          allow_user_chats: true,
-          query: assistant.name,
-        },
-      },
-    ]);
-    buttons.push([
-      { text: "🗑️ Delete", callback_data: `asst.${assistant.id}.del` },
-    ]);
-    buttons.push([{ text: "👈 Assistants", callback_data: "asst.back" }]);
-
-    return ctx.replyWithHTML(
-      `🤖 <b>Name:</b> <code>${assistant.name}</code>
-
-☝️ <b>Instructions:</b>
-<pre>${assistant.instructions}</pre>`,
-      { reply_markup: { inline_keyboard: buttons } }
-    );
-  }
+  return ctx.replyWithHTML(
+    ctx.t("asst:html.asst", {
+      assistant: assistant.name,
+      instructions: assistant.instructions,
+    }),
+    { reply_markup: keyboard }
+  );
 });
 
 export default newAssistantScene;

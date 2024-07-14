@@ -29,15 +29,11 @@ const helpHandler = async (ctx: BotContext) => {
     });
   }
 
+  await ctx.scene.leave();
+
   await ctx.replyWithHTML(
-    `💁 <b>Help</b>
-
-/start | /help — ℹ️ Show this message
-/chat — 💬 Talk to an assistant
-/assistants — 🤖 Manage assistants
-/settings — ⚙️ Settings menu
-
-v${escapeHtml(process.env.BOT_VERSION ?? "?.?.?")}`
+    ctx.t("html.help") +
+      `\n\nv${escapeHtml(process.env.BOT_VERSION ?? "?.?.?")}`
   );
 };
 

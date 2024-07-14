@@ -1,0 +1,14 @@
+{
+  "cb.convs.page": "💬 Conversations (page {{page}} of {{pages}})",
+  "cb.convs": "💬 Conversations",
+  "html.conv.missing": "Conversation {{id}} doesn't exist in the database.",
+  "btn.continue": "💬 Continue",
+  "btn.history": "📖 History",
+  "cb.deleted": "🗑️ Deleted Conversation.",
+  "tokens": "tokens",
+  "cb.new": "🤖 Choose assistant",
+  "html.new": "Choose an <b>assistant</b> to start a new conversation with.",
+  "btn.new": "➕ New conversation",
+  "html.convs": "💬 <b>Conversations</b>\n<i>Page {{page}} of {{pages}}</i>",
+  "html.convs.empty": "💬 <b>You have no previous conversations.</b>"
+}

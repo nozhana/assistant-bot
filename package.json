@@ -5,14 +5,18 @@
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "tsx index.ts",
+    "toc": "i18next-resources-for-ts toc -i ./locales/en -o @types/resources.ts",
+    "interface": "i18next-resources-for-ts interface -i ./locales/en -o @types/resources.d.ts"
   },
   "author": "Nozhan Amiri (nozhana@gmail.com)",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.16.1",
     "@telegraf/session": "^2.0.0-beta.7",
+    "@types/i18next": "^13.0.0",
     "better-sqlite3": "^9.6.0",
+    "i18next": "^23.11.5",
     "kysely": "^0.27.2",
     "openai": "^4.52.3",
     "telegraf": "^4.16.3",
@@ -21,6 +25,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^20.14.10",
+    "i18next-resources-for-ts": "^1.5.0",
     "prisma": "^5.16.1",
     "tsx": "^4.16.2"
   }

@@ -26,10 +26,12 @@ chatScene.enter(async (ctx) => {
   });
 
   const response = await ctx.replyWithHTML(
-    `You're now talking to <b>${conversation.assistant.name}</b>.`,
+    ctx.t("chat:html.chatting", { assistant: conversation.assistant.name }),
     {
       reply_markup: {
-        inline_keyboard: [[{ text: "🚫 Leave", callback_data: "chat.leave" }]],
+        inline_keyboard: [
+          [{ text: ctx.t("chat:btn.leave"), callback_data: "chat.leave" }],
+        ],
       },
     }
   );
@@ -56,7 +58,8 @@ chatScene.on(message("voice"), async (ctx) => {
     model: "whisper-1",
   });
 
-  if (!transcription.text.length) return ctx.reply("Transcription failed.");
+  if (!transcription.text.length)
+    return ctx.reply(ctx.t("chat:html.transcription.failed"));
 
   return handlePrompt(ctx, transcription.text);
 });
@@ -70,7 +73,7 @@ chatScene.on(message("document"), async (ctx) => {
   const res = await fetch(fileLink);
   const buffer = Buffer.from(await res.arrayBuffer());
 
-  const waitMessage = await ctx.replyWithHTML("<i>Please wait...</i>");
+  const waitMessage = await ctx.replyWithHTML(ctx.t("html.wait"));
 
   await ctx.sendChatAction("upload_document");
   let remoteFile: FileObject;
@@ -80,7 +83,9 @@ chatScene.on(message("document"), async (ctx) => {
       purpose: "assistants",
     });
   } catch (error) {
-    return ctx.replyWithHTML(`❌ <b>Failed to upload document.</b>\n${error}`);
+    return ctx.replyWithHTML(
+      ctx.t("chat:html.doc.upload.failed") + `\n${error}`
+    );
   }
 
   const assistant = (
@@ -133,10 +138,12 @@ chatScene.on(message("document"), async (ctx) => {
   try {
     await ctx.deleteMessage(waitMessage.message_id);
   } catch {}
-  return ctx.replyWithHTML(`📎 Attached document to assistant.
-📁 <b>Filename:</b> <code>${remoteFile.filename}</code>
-
-⏳ This file is set to expire after <b>2 days</b> of inactivity.`);
+  return ctx.replyWithHTML(
+    ctx.t("chat:html.doc.upload.success", {
+      filename: remoteFile.filename,
+      count: 2,
+    })
+  );
 });
 
 chatScene.command("leave", async (ctx) => {
@@ -145,7 +152,7 @@ chatScene.command("leave", async (ctx) => {
 });
 
 chatScene.action("chat.leave", async (ctx) => {
-  await ctx.answerCbQuery("🚫 Left conversation.");
+  await ctx.answerCbQuery(ctx.t("chat:cb.leave"));
   await ctx.editMessageReplyMarkup(undefined);
   await ctx.scene.leave();
   return ctx.scene.enter("convScene");
@@ -159,7 +166,7 @@ async function handlePrompt(ctx: BotContext, text: string) {
   const { prisma, openai } = ctx;
   const { conversationId } = ctx.scene.session;
 
-  const waitMessage = await ctx.replyWithHTML("<i>Please wait...</i>");
+  const waitMessage = await ctx.replyWithHTML(ctx.t("html.wait"));
 
   const conversation = await prisma.conversation.findUniqueOrThrow({
     where: { id: conversationId },
@@ -251,7 +258,7 @@ async function handlePrompt(ctx: BotContext, text: string) {
           try {
             await ctx.deleteMessage(waitMessage.message_id);
           } catch {}
-          await ctx.reply("Failed to encode response audio.");
+          await ctx.reply(ctx.t("chat:html.response.audio.failed"));
           continue;
         }
 
@@ -286,13 +293,14 @@ async function handlePrompt(ctx: BotContext, text: string) {
     switch (toolCall.type) {
       case "code_interpreter":
         await ctx.replyWithHTML(
-          `🧑‍💻 <i>Running code...</i>\n${escapeHtml(
-            toolCall.code_interpreter.input
-          )}`
+          ctx.t("chat:html.codeinterpreter.created") +
+            "\n<pre>" +
+            escapeHtml(toolCall.code_interpreter.input) +
+            "</pre>"
         );
         break;
       case "file_search":
-        await ctx.replyWithHTML(`📁 <i>Searching files...</i>`);
+        await ctx.replyWithHTML(ctx.t("chat:html.filesearch.created"));
         break;
       default:
         break;
@@ -302,13 +310,15 @@ async function handlePrompt(ctx: BotContext, text: string) {
   stream.on("toolCallDone", async (toolCall) => {
     switch (toolCall.type) {
       case "code_interpreter":
-        let response = "🧑‍💻 <i>Code run successfully.</i>\n";
+        let response = ctx.t("chat:html.codeinterpreter.done") + "\n";
         let mediaGroup: InputMediaPhoto[] = [];
         for (let output of toolCall.code_interpreter.outputs) {
           if (output.type === "logs") {
-            response += `<b>Console log \></b>\n<pre>${escapeHtml(
-              output.logs
-            )}</pre>\n`;
+            response +=
+              ctx.t("chat:html.codeinterpreter.done") +
+              "\n<pre>" +
+              escapeHtml(output.logs) +
+              "</pre>\n";
           } else {
             const res = await openai.files.content(output.image.file_id);
             mediaGroup.push({
@@ -324,7 +334,7 @@ async function handlePrompt(ctx: BotContext, text: string) {
         await ctx.replyWithHTML(response);
         break;
       case "file_search":
-        await ctx.replyWithHTML("📁 <i>File search done.</i>");
+        await ctx.replyWithHTML(ctx.t("chat:html.filesearch.done"));
       case "function":
         break;
     }
@@ -349,11 +359,13 @@ async function handlePrompt(ctx: BotContext, text: string) {
       where: { id: responseMessage.id },
       data: { tokens: run.usage?.completion_tokens },
     });
-    await ctx.replyWithHTML(`
-🗨️ <b>Prompt:</b> <code>${run.usage?.prompt_tokens} tokens</code>
-💬 <b>Completion:</b> <code>${run.usage?.completion_tokens} tokens</code>
-
-💸 <b>Total:</b> <code>${run.usage?.total_tokens} tokens</code>`);
+    await ctx.replyWithHTML(
+      ctx.t("chat:html.usage", {
+        promptTokens: run.usage?.prompt_tokens,
+        completionTokens: run.usage?.completion_tokens,
+        totalTokens: run.usage?.total_tokens,
+      })
+    );
   });
 
   async function renameConversationIfNeeded(prompt: string, response: string) {
@@ -390,7 +402,7 @@ async function handlePrompt(ctx: BotContext, text: string) {
         });
 
         await ctx.replyWithHTML(
-          `✨ Renamed conversation:\n<b>${titles[0]}</b>`
+          ctx.t("chat:html.rename") + "\n<b>" + titles[0] + "</b>"
         );
       }
     }

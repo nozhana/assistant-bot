@@ -1,0 +1,11 @@
+{
+  "btn.back": "👈 Back",
+  "btn.prev": "⬅️ Page {{page}}",
+  "btn.next": "Page {{page}} ➡️",
+  "btn.delete": "🗑️ Delete",
+  "btn.cancel": "❌ Cancel",
+  "lang.feedback": "Language changed to 🇬🇧 English.",
+  "coming.soon": "👟 Coming soon",
+  "html.wait": "<i>Please wait...</i>",
+  "html.help": "💁 <b>Help</b>\n\n/start | /help — ℹ️ Show this message\n/chat — 💬 Talk to an assistant\n/assistants — 🤖 Manage assistants\n/settings — ⚙️ Settings menu"
+}

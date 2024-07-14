@@ -9,7 +9,7 @@ export const defaultSession: () => SessionData = () => ({
   settings: {
     isVoiceResponse: true,
     voice: "alloy",
-    language: "en-US",
+    locale: "en",
   },
 });
 

@@ -1,16 +1,18 @@
-import { Context, NarrowedContext } from "telegraf";
-import SessionData from "./session-data";
+import { NarrowedContext } from "telegraf";
 import { SceneContextScene } from "telegraf/typings/scenes";
 import {
   Update,
   Message,
   CallbackQuery,
 } from "telegraf/typings/core/types/typegram";
-import BotSceneSession from "./scene-session";
-import { PrismaClient } from "@prisma/client";
 import OpenAI from "openai";
+import { PrismaClient } from "@prisma/client";
 
-interface BotContext extends Context {
+import BotSceneSession from "./scene-session";
+import SessionData from "./session-data";
+import { I18nContext } from "./i18n-middleware";
+
+interface BotContext extends I18nContext {
   session: SessionData;
   scene: SceneContextScene<BotContext, BotSceneSession>;
   prisma: PrismaClient;
