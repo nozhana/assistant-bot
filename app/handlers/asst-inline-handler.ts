@@ -38,17 +38,22 @@ const asstInlineHandler = async (
     articles.push({
       type: "article",
       id: assistant.id,
-      thumbnail_url: Constants.thumbnail(assistant.name),
+      thumbnail_url: assistant.image ?? Constants.thumbnail(assistant.name),
       title: `🤖 ${assistant.name}`,
       description: `☝️ ${
-        assistant.instructions ?? ctx.t("asst:inline.article.no.inst")
+        (assistant.instructions?.length ?? 0) > 512
+          ? ctx.t("asst:html.inst.toolong")
+          : assistant.instructions ?? ctx.t("asst:inline.article.no.inst")
       }`,
       input_message_content: {
         message_text: ctx.t("asst:inline.html.guest", {
           assistant: assistant.name,
-          instructions: escapeHtml(
-            assistant.instructions ?? ctx.t("asst:inline.article.no.inst")
-          ),
+          instructions:
+            (assistant.instructions?.length ?? 0) > 256
+              ? ctx.t("asst:html.inst.toolong")
+              : escapeHtml(
+                  assistant.instructions ?? ctx.t("asst:inline.article.no.inst")
+                ),
         }),
         parse_mode: "HTML",
       },

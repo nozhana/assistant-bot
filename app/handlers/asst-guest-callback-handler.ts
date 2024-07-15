@@ -54,9 +54,12 @@ const asstGuestCallbackHandler = async (
   await ctx.editMessageText(
     ctx.t("asst:html.guest.added", {
       assistant: assistant.name,
-      instructions: escapeHtml(
-        assistant.instructions ?? ctx.t("asst:inline.article.no.inst")
-      ),
+      instructions:
+        (assistant.instructions?.length ?? 0) > 256
+          ? ctx.t("asst:html.inst.toolong")
+          : escapeHtml(
+              assistant.instructions ?? ctx.t("asst:inline.article.no.inst")
+            ),
     }),
     { reply_markup: undefined, parse_mode: "HTML" }
   );
