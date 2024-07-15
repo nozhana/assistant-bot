@@ -30,6 +30,8 @@ model Assistant {
   serversideId  String         @unique
   name          String
   instructions  String?
+  greeting      String?
+  image         String?
   userId        Int
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   guestIds      Int[]
@@ -70,4 +72,5 @@ model Message {
 enum Role {
   USER
   ASSISTANT
+  SYSTEM
 }

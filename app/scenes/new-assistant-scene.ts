@@ -116,14 +116,48 @@ newAssistantScene.action("asst.create", async (ctx) => {
     .text(ctx.t("btn.delete"), `asst.${assistant.id}.del`)
     .text(ctx.t("asst:btn.back.assts"), "asst.back");
 
-  return ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
-    caption: ctx.t("asst:html.asst", {
-      assistant: assistant.name,
-      instructions: assistant.instructions,
-    }),
-    parse_mode: "HTML",
-    reply_markup: keyboard,
-  });
+  try {
+    await ctx.replyWithPhoto(
+      assistant.image ?? Constants.thumbnail(assistant.name),
+      {
+        caption: ctx.t("asst:html.asst", {
+          assistant: assistant.name,
+          instructions: assistant.instructions,
+        }),
+        parse_mode: "HTML",
+        reply_markup: keyboard,
+      }
+    );
+  } catch (error) {
+    try {
+      await ctx.replyWithPhoto(
+        assistant.image ?? Constants.thumbnail(assistant.name),
+        { caption: `🖼️ <b>${assistant.name}</b>`, parse_mode: "HTML" }
+      );
+    } catch {
+      await ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
+        caption: `🖼️ <b>${assistant.name}</b>`,
+        parse_mode: "HTML",
+      });
+    }
+    try {
+      await ctx.replyWithHTML(
+        ctx.t("asst:html.asst", {
+          assistant: assistant.name,
+          instructions: assistant.instructions,
+        }),
+        { reply_markup: keyboard }
+      );
+    } catch {
+      await ctx.replyWithHTML(
+        ctx.t("asst:html.asst", {
+          assistant: assistant.name,
+          instructions: ctx.t("asst:html.inst.toolong"),
+        }),
+        { reply_markup: keyboard }
+      );
+    }
+  }
 });
 
 export default newAssistantScene;

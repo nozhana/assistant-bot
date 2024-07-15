@@ -33,7 +33,10 @@ const listAssistants = async (ctx: BotContext, page: number = 1) => {
   const pages = Math.ceil(assistantsCount / 10);
 
   const keyboard = new InlineKeyboard()
-    .text(ctx.t("asst:btn.new"), "asst.new")
+    .row(
+      InlineKeyboard.text(ctx.t("asst:btn.new"), "asst.new"),
+      InlineKeyboard.text(ctx.t("asst:btn.import"), "asst.import")
+    )
     .rows(
       ...assistants.map((e) => [
         InlineKeyboard.text(`🤖 ${e.name}`, `asst.${e.id}`),
@@ -67,6 +70,12 @@ assistantScene.action("asst.new", async (ctx) => {
   await ctx.answerCbQuery(ctx.t("asst:cb.new"));
   await ctx.editMessageReplyMarkup(undefined);
   return ctx.scene.enter("newAssistantScene");
+});
+
+assistantScene.action("asst.import", async (ctx) => {
+  await ctx.answerCbQuery(ctx.t("asst:cb.import"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.scene.enter("importAssistantScene");
 });
 
 assistantScene.action(/asst\.list\.\d+/g, async (ctx) => {
@@ -160,9 +169,11 @@ assistantScene.action(/asst\.[^.]+\.del/g, async (ctx) => {
 assistantScene.action(/asst\.[^.]+\.chat/g, async (ctx) => {
   const id = ctx.match[0].split(".")[1];
   const { prisma } = ctx;
+  const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
   const conversation = await prisma.conversation.create({
     data: { userId: ctx.from.id, assistantId: id },
   });
+
   await ctx.answerCbQuery(ctx.t("chat:cb.chatting"));
   await ctx.editMessageReplyMarkup(undefined);
   return ctx.scene.enter("chatScene", { conversationId: conversation.id });
@@ -268,11 +279,48 @@ assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
 
   await ctx.answerCbQuery(`🤖 ${assistant.name}`);
   await ctx.editMessageReplyMarkup(undefined);
-  return ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
-    caption: response,
-    parse_mode: "HTML",
-    reply_markup: keyboard,
-  });
+  try {
+    await ctx.replyWithPhoto(
+      assistant.image ?? Constants.thumbnail(assistant.name),
+      {
+        caption: ctx.t("asst:html.asst", {
+          assistant: assistant.name,
+          instructions: assistant.instructions,
+        }),
+        parse_mode: "HTML",
+        reply_markup: keyboard,
+      }
+    );
+  } catch (error) {
+    try {
+      await ctx.replyWithPhoto(
+        assistant.image ?? Constants.thumbnail(assistant.name),
+        { caption: `🖼️ <b>${assistant.name}</b>`, parse_mode: "HTML" }
+      );
+    } catch {
+      await ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
+        caption: `🖼️ <b>${assistant.name}</b>`,
+        parse_mode: "HTML",
+      });
+    }
+    try {
+      await ctx.replyWithHTML(
+        ctx.t("asst:html.asst", {
+          assistant: assistant.name,
+          instructions: assistant.instructions,
+        }),
+        { reply_markup: keyboard }
+      );
+    } catch {
+      await ctx.replyWithHTML(
+        ctx.t("asst:html.asst", {
+          assistant: assistant.name,
+          instructions: ctx.t("asst:html.inst.toolong"),
+        }),
+        { reply_markup: keyboard }
+      );
+    }
+  }
 });
 
 export default assistantScene;

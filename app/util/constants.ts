@@ -4,6 +4,7 @@ const Constants = {
   thumbnail: (seed: string) => {
     return Constants.thumbnailUrl.replace("{{seed}}", encodeURI(seed));
   },
+  downloadChubUrl: "https://api.chub.ai/api/characters/download",
 };
 
 export default Constants;

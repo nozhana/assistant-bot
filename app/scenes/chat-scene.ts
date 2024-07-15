@@ -22,7 +22,7 @@ chatScene.enter(async (ctx) => {
   ctx.scene.session.conversationId = conversationId;
   const conversation = await prisma.conversation.findUniqueOrThrow({
     where: { id: conversationId },
-    select: { assistant: true },
+    select: { id: true, assistant: true, messages: true },
   });
 
   const response = await ctx.replyWithHTML(
@@ -35,6 +35,29 @@ chatScene.enter(async (ctx) => {
       },
     }
   );
+
+  if (conversation.assistant.greeting && !conversation.messages.length) {
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: {
+        messages: {
+          create: {
+            role: "ASSISTANT",
+            content: conversation.assistant.greeting,
+            userId: ctx.from!.id,
+            assistantId: conversation.assistant.id,
+            tokens: 0,
+          },
+        },
+      },
+    });
+    try {
+      await ctx.replyWithMarkdown(conversation.assistant.greeting);
+    } catch {
+      await ctx.reply(conversation.assistant.greeting);
+    }
+  }
+
   return ctx.pinChatMessage(response.message_id);
 });
 
@@ -176,7 +199,7 @@ async function handlePrompt(ctx: BotContext, text: string) {
   await ctx.sendChatAction("typing");
 
   const messages: {
-    role: "USER" | "ASSISTANT";
+    role: "USER" | "ASSISTANT" | "SYSTEM";
     content: string;
   }[] = [];
 
@@ -209,7 +232,7 @@ async function handlePrompt(ctx: BotContext, text: string) {
 
   let responseMessage: {
     id?: string;
-    role: "USER" | "ASSISTANT";
+    role: "USER" | "ASSISTANT" | "SYSTEM";
     content?: string;
   } = { role: "ASSISTANT" };
 
