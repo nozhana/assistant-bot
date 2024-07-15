@@ -283,10 +283,7 @@ assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
     await ctx.replyWithPhoto(
       assistant.image ?? Constants.thumbnail(assistant.name),
       {
-        caption: ctx.t("asst:html.asst", {
-          assistant: assistant.name,
-          instructions: assistant.instructions,
-        }),
+        caption: response,
         parse_mode: "HTML",
         reply_markup: keyboard,
       }
@@ -304,21 +301,17 @@ assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
       });
     }
     try {
-      await ctx.replyWithHTML(
-        ctx.t("asst:html.asst", {
-          assistant: assistant.name,
-          instructions: assistant.instructions,
-        }),
-        { reply_markup: keyboard }
-      );
+      await ctx.replyWithHTML(response, { reply_markup: keyboard });
     } catch {
-      await ctx.replyWithHTML(
-        ctx.t("asst:html.asst", {
-          assistant: assistant.name,
-          instructions: ctx.t("asst:html.inst.toolong"),
-        }),
-        { reply_markup: keyboard }
-      );
+      response = ctx.t("asst:html.asst", {
+        assistant: assistant.name,
+        instructions: ctx.t("asst:html.inst.toolong"),
+      });
+      if (!isPersonalAssistant && !isGuest && assistant.guestIds.length)
+        response +=
+          "\n\n" +
+          ctx.t("asst:html.asst.shared", { count: assistant.guestIds.length });
+      await ctx.replyWithHTML(response, { reply_markup: keyboard });
     }
   }
 });
