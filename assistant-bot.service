@@ -1,0 +1,13 @@
+[Unit]
+Description=Assistant Bot
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=2
+User=root
+WorkingDirectory=/root/assistant-bot
+ExecStart=/usr/local/bin/npm run start
+
+[Install]
+WantedBy=multi-user.target
