@@ -2,10 +2,13 @@ import { Scenes } from "telegraf";
 import BotContext from "../middlewares/bot-context";
 import { AssistantTool } from "openai/resources/beta/assistants";
 import InlineKeyboard from "../util/inline-keyboard";
+import initializeUserAndPersonalAssistant from "../handlers/init-user";
+import Constants from "../util/constants";
 
 const assistantScene = new Scenes.BaseScene<BotContext>("assistantScene");
 
 assistantScene.enter(async (ctx) => {
+  await initializeUserAndPersonalAssistant(ctx);
   return listAssistants(ctx);
 });
 
@@ -265,7 +268,9 @@ assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
 
   await ctx.answerCbQuery(`🤖 ${assistant.name}`);
   await ctx.editMessageReplyMarkup(undefined);
-  return ctx.replyWithHTML(response, {
+  return ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
+    caption: response,
+    parse_mode: "HTML",
     reply_markup: keyboard,
   });
 });

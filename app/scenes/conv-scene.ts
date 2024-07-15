@@ -3,6 +3,7 @@ import BotContext from "../middlewares/bot-context";
 import { Update } from "telegraf/typings/core/types/typegram";
 import { callbackQuery } from "telegraf/filters";
 import InlineKeyboard from "../util/inline-keyboard";
+import initializeUserAndPersonalAssistant from "../handlers/init-user";
 
 const convScene = new Scenes.BaseScene<BotContext>("convScene");
 
@@ -136,6 +137,9 @@ async function chooseAssistant(
   page: number = 1
 ) {
   const { prisma } = ctx;
+
+  await initializeUserAndPersonalAssistant(ctx);
+
   const assistants = await prisma.assistant.findMany({
     where: {
       OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],

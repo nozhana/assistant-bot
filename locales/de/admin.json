@@ -7,5 +7,11 @@
   "cb.users": "👥 Alle Nutzer (Seite {{page}} von {{pages}})",
   "html.users": "👥 <b>Alle Nutzer</b>\n<i>Seite {{page}} von {{pages}}</i>",
   "cb.user": "👤 Nutzer {{id}}",
-  "html.user": "👤 <b>Nutzerangaben</b>\n\n🧑 Vorname: <code>{{firstName}}</code>\n#️⃣ Telegram-ID: <code>{{id}}</code>\n💬 Gespräche: <code>{{convLength}} Gespräche</code>\n🤖 Assistenten: <code>{{asstLength}} Assistenten</code>\n\n<a href=\"tg://user?id={{id}}\">🔗 Zum Nutzerprofil</a>"
+  "html.user": "👤 <b>Nutzerangaben</b>\n\n🧑 Vorname: <code>{{firstName}}</code>\n#️⃣ Telegram-ID: <code>{{id}}</code>\n💬 Gespräche: <code>{{convLength}} Gespräche</code>\n🤖 Assistenten: <code>{{asstLength}} Assistenten</code>\n\n<a href=\"tg://user?id={{id}}\">🔗 Zum Nutzerprofil</a>",
+  "cb.user.deleted": "🗑️ Nutzer {{user}} mit allen Daten gelöscht.",
+  "cb.broadcast": "📣 Übertragung",
+  "html.broadcast": "📣 <b>Senden Sie eine Nachricht, die an alle Nutzer gesendet werden soll.</b>",
+  "html.broadcast.confirm": "📨 <b>Sendung bestätigen?</b>\n⚠️ <b>Warnung:</b> Gehen Sie mit Vorsicht vor.",
+  "html.broadcast.failed.user": "❌ Zustellung fehlgeschlagen <b>{{user}} - {{userId}}</b>",
+  "html.broadcast.done": "✅ <b>Sendung beendet.</b>"
 }

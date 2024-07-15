@@ -20,7 +20,7 @@ const asstGuestCallbackHandler = async (
   });
 
   if (!assistant)
-    return ctx.answerCbQuery("🚫 This assistant has been deleted.", {
+    return ctx.answerCbQuery(ctx.t("asst:cb.guest.missing"), {
       show_alert: true,
     });
 
@@ -36,7 +36,7 @@ const asstGuestCallbackHandler = async (
 
   if (exists)
     return ctx.answerCbQuery(
-      `🚫 You already have ${assistant.name} in your library.`,
+      ctx.t("asst:cb.guest.exists", { assistant: assistant.name }),
       { show_alert: true }
     );
 
@@ -45,12 +45,19 @@ const asstGuestCallbackHandler = async (
     data: { guestAssistants: { connect: { id: assistantId } } },
   });
 
-  await ctx.answerCbQuery(`✅ ${assistant.name} added to library.`);
+  await ctx.answerCbQuery(
+    ctx.t("asst:cb.guest.added", { assistant: assistant.name }),
+    {
+      show_alert: true,
+    }
+  );
   await ctx.editMessageText(
-    `✅ Assistant added to library successfully.
-🤖 <b>Name:</b> <code>${escapeHtml(assistant.name)}</code>
-☝️ <b>Instructions:</b>
-<pre>${escapeHtml(assistant.instructions ?? "No instructions")}</pre>`,
+    ctx.t("asst:html.guest.added", {
+      assistant: assistant.name,
+      instructions: escapeHtml(
+        assistant.instructions ?? ctx.t("asst:inline.article.no.inst")
+      ),
+    }),
     { reply_markup: undefined, parse_mode: "HTML" }
   );
 };

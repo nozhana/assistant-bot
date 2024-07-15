@@ -9,5 +9,6 @@
   "html.voice": "🗣️ Ausgewählte Stimme: <b>{{voice}}</b>",
   "cb.voice": "🗣️ Stimmen",
   "cb.voice.changed": "🗣️ Stimme auf {{voice}} geändert.",
-  "html.lang.change": "🌐 <b>Sprache des Bots ändern</b>"
+  "html.lang.change": "🌐 <b>Sprache des Bots ändern</b>",
+  "cb.lang.change": "🌐 Sprache ändern"
 }

@@ -15,7 +15,7 @@ adminMenuScene.enter(async (ctx) => {
   });
 });
 
-adminMenuScene.action(/admin\.users\.(\d+)/g, async (ctx) => {
+adminMenuScene.action(/admin\.users\.\d+/g, async (ctx) => {
   const { prisma } = ctx;
   const page = Number(ctx.match[0].split(".").pop());
   const users = await prisma.user.findMany({ skip: (page - 1) * 10, take: 10 });
@@ -43,23 +43,27 @@ adminMenuScene.action(/admin\.users\.(\d+)/g, async (ctx) => {
         page >= pages
       )
     )
-    .text(ctx.t("btn.back"), "admin.reset");
+    .text(ctx.t("btn.back"), "admin.back");
 
   await ctx.answerCbQuery(ctx.t("admin:cb.users", { page, pages }));
-  return ctx.editMessageText(ctx.t("admin:html.users", { page, pages }), {
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.replyWithHTML(ctx.t("admin:html.users", { page, pages }), {
     reply_markup: keyboard,
-    parse_mode: "HTML",
   });
 });
 
-adminMenuScene.action(/admin\.user\.(.+)/g, async (ctx) => {
+adminMenuScene.action(/admin\.user\.\d+$/g, async (ctx) => {
   const { prisma } = ctx;
-  const userId = ctx.match[0].split(".").pop();
+  const userId = Number(ctx.match[0].split(".").pop());
 
   const user = await prisma.user.findUniqueOrThrow({
-    where: { id: Number(userId) },
+    where: { id: userId },
     include: { conversations: true, assistants: true, messages: true },
   });
+
+  const keyboard = new InlineKeyboard()
+    .text(ctx.t("btn.delete"), `admin.user.${userId}.del`)
+    .text(ctx.t("btn.back"), "admin.users.1");
 
   await ctx.answerCbQuery(ctx.t("admin:cb.user", { id: user.id }));
   await ctx.editMessageReplyMarkup(undefined);
@@ -71,16 +75,76 @@ adminMenuScene.action(/admin\.user\.(.+)/g, async (ctx) => {
       asstLength: user.assistants.length,
     }),
     {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: ctx.t("btn.back"), callback_data: "admin.users.1" }],
-        ],
-      },
+      reply_markup: keyboard,
     }
   );
 });
 
-adminMenuScene.action("admin.reset", async (ctx) => {
+adminMenuScene.action(/admin\.user\.\d+\.del/g, async (ctx) => {
+  const { openai, prisma } = ctx;
+  const userId = Number(ctx.match[0].split(".")[2]);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { guestAssistants: { set: [] } },
+  });
+
+  const user = await prisma.user.delete({
+    where: { id: userId },
+    include: { assistants: true },
+  });
+
+  for (let assistant of user.assistants) {
+    try {
+      const remoteAsst = await openai.beta.assistants.retrieve(
+        assistant.serversideId
+      );
+
+      if (remoteAsst.tool_resources?.code_interpreter?.file_ids) {
+        for (let fileId of remoteAsst.tool_resources.code_interpreter
+          .file_ids) {
+          try {
+            await openai.files.del(fileId);
+          } catch {}
+        }
+      }
+      if (remoteAsst.tool_resources?.file_search?.vector_store_ids) {
+        for (let storeId of remoteAsst.tool_resources.file_search
+          .vector_store_ids) {
+          try {
+            const files = await openai.beta.vectorStores.files.list(storeId);
+            for (let file of files.data) {
+              try {
+                await openai.beta.vectorStores.files.del(storeId, file.id);
+              } catch {}
+            }
+            await openai.beta.vectorStores.del(storeId);
+          } catch {}
+        }
+      }
+
+      await openai.beta.assistants.del(assistant.serversideId);
+    } catch {}
+  }
+
+  const keyboard = new InlineKeyboard().text(
+    ctx.t("btn.back"),
+    "admin.users.1"
+  );
+  await ctx.editMessageReplyMarkup(keyboard);
+  return ctx.answerCbQuery(
+    ctx.t("admin:cb.user.deleted", { user: user.firstName }),
+    { show_alert: true }
+  );
+});
+
+adminMenuScene.action("admin.broadcast", async (ctx) => {
+  await ctx.answerCbQuery(ctx.t("admin:cb.broadcast"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.scene.enter("adminBroadcastScene");
+});
+
+adminMenuScene.action("admin.back", async (ctx) => {
   await ctx.answerCbQuery(ctx.t("admin:cb.menu"));
   await ctx.editMessageReplyMarkup(undefined);
   return ctx.scene.reenter();

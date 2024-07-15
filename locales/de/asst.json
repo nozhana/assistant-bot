@@ -24,5 +24,12 @@
   "cb.restarted": "🔄 Neu gestartet.",
   "cb.creating": "🛜 Den Assistenten erstellen...",
   "html.creating": "<i>Jetzt den neuen Assistenten erstellen, bitte warten...</i>",
-  "html.created": "❇️ <b>Neuen Assistenten erfolgreich erstellt.</b>"
+  "html.created": "❇️ <b>Neuen Assistenten erfolgreich erstellt.</b>",
+  "cb.guest.missing": "🚫 Dieser Assistent scheint nicht mehr zu existieren.",
+  "cb.guest.exists": "🚫 Sie haben {{assistant}} bereits in Ihrer Bibliothek.",
+  "cb.guest.added": "✅ {{assistant}} zur Bibliothek hinzugefügt.",
+  "html.guest.added": "✅ Assistent erfolgreich zu Ihrer Bibliothek hinzugefügt.\n🤖 <b>Name:</b> <code>{{assistant}}</code>\n☝️ <b>Anweisungen:</b>\n<pre>{{instructions}}</pre>",
+  "inline.html.guest": "Hier, probier mal den neuen Assistenten aus, den ich erstellt habe!\n🤖 <b>Name:</b> <code>{{assistant}}</code>\n☝️ <b>Anweisungen:</b>\n<pre>{{instructions}}</pre>",
+  "inline.article.no.inst": "Keine Anweisungen",
+  "inline.btn.asst.add": "⬇️ Füge {{assistant}} zu Assistenten hinzu"
 }

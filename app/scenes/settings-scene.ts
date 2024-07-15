@@ -140,6 +140,8 @@ settingsScene.action("settings.lang", async (ctx) => {
     )
     .text(ctx.t("btn.back"), "settings.back");
 
+  await ctx.answerCbQuery(ctx.t("settings:cb.lang.change"));
+  await ctx.editMessageReplyMarkup(undefined);
   return ctx.replyWithHTML(ctx.t("settings:html.lang.change"), {
     reply_markup: keyboard,
   });

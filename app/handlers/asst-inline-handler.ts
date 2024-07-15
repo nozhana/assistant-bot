@@ -5,6 +5,7 @@ import {
 import { NarrowedContext } from "telegraf";
 import BotContext from "../middlewares/bot-context";
 import escapeHtml from "../util/escape-html";
+import Constants from "../util/constants";
 
 const asstInlineHandler = async (
   ctx: NarrowedContext<BotContext, Update.InlineQueryUpdate>,
@@ -37,21 +38,27 @@ const asstInlineHandler = async (
     articles.push({
       type: "article",
       id: assistant.id,
+      thumbnail_url: Constants.thumbnail(assistant.name),
       title: `🤖 ${assistant.name}`,
-      description: `☝️ ${assistant.instructions ?? "No instructions"}`,
+      description: `☝️ ${
+        assistant.instructions ?? ctx.t("asst:inline.article.no.inst")
+      }`,
       input_message_content: {
-        message_text: `Here, try out this new assistant I created!
-🤖 <b>Name:</b> <code>${escapeHtml(assistant.name)}</code>
-☝️ <b>Instructions:</b>\n<pre>${escapeHtml(
-          assistant.instructions ?? "No instructions"
-        )}</pre>`,
+        message_text: ctx.t("asst:inline.html.guest", {
+          assistant: assistant.name,
+          instructions: escapeHtml(
+            assistant.instructions ?? ctx.t("asst:inline.article.no.inst")
+          ),
+        }),
         parse_mode: "HTML",
       },
       reply_markup: {
         inline_keyboard: [
           [
             {
-              text: `⬇️ Add ${assistant.name} to assistants`,
+              text: ctx.t("asst:inline.btn.asst.add", {
+                assistant: assistant.name,
+              }),
               callback_data: `guest.${assistant.id}`,
             },
           ],
@@ -60,7 +67,7 @@ const asstInlineHandler = async (
     });
   }
 
-  return ctx.answerInlineQuery(articles);
+  return ctx.answerInlineQuery(articles, { cache_time: 5 });
 };
 
 export default asstInlineHandler;

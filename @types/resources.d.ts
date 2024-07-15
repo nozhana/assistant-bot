@@ -8,7 +8,13 @@ interface Resources {
     "cb.users": "👥 All Users (page {{page}} of {{pages}})",
     "html.users": "👥 <b>All Users</b>\n<i>Page {{page}} of {{pages}}</i>",
     "cb.user": "👤 User {{id}}",
-    "html.user": "👤 <b>User details</b>\n\n🧑 First name: <code>{{firstName}}</code>\n#️⃣ Telegram ID: <code>{{id}}</code>\n💬 Conversations: <code>{{convLength}} conversations</code>\n🤖 Assistants: <code>{{asstLength}} assistants</code>\n\n<a href=\"tg://user?id={{id}}\">🔗 Go to user profile</a>"
+    "html.user": "👤 <b>User details</b>\n\n🧑 First name: <code>{{firstName}}</code>\n#️⃣ Telegram ID: <code>{{id}}</code>\n💬 Conversations: <code>{{convLength}} conversations</code>\n🤖 Assistants: <code>{{asstLength}} assistants</code>\n\n<a href=\"tg://user?id={{id}}\">🔗 Go to user profile</a>",
+    "cb.user.deleted": "🗑️ Deleted user {{user}} and all their data.",
+    "cb.broadcast": "📣 Broadcast",
+    "html.broadcast": "📣 <b>Send a message to broadcast to all users.</b>",
+    "html.broadcast.confirm": "📨 <b>Confirm broadcast?</b>\n⚠️ <b>Warning:</b> Proceed with caution.",
+    "html.broadcast.failed.user": "❌ Failed to deliver to <b>{{user}} - {{userId}}</b>",
+    "html.broadcast.done": "✅ <b>Broadcast finished.</b>"
   },
   "asst": {
     "btn.new": "➕ New assistant",
@@ -36,7 +42,14 @@ interface Resources {
     "cb.restarted": "🔄 Restarted process.",
     "cb.creating": "🛜 Creating assistant...",
     "html.creating": "<i>Creating new assistant, please wait...</i>",
-    "html.created": "❇️ <b>Created new assistant successfully.</b>"
+    "html.created": "❇️ <b>Created new assistant successfully.</b>",
+    "cb.guest.missing": "🚫 Assistant doesn't seem to exist anymore.",
+    "cb.guest.exists": "🚫 You already have {{assistant}} in your library.",
+    "cb.guest.added": "✅ {{assistant}} added to library.",
+    "html.guest.added": "✅ Assistant added to library successfully.\n🤖 <b>Name:</b> <code>{{assistant}}</code>\n☝️ <b>Instructions:</b>\n<pre>{{instructions}}</pre>",
+    "inline.html.guest": "Here, try out this new assistant I created!\n🤖 <b>Name:</b> <code>{{assistant}}</code>\n☝️ <b>Instructions:</b>\n<pre>{{instructions}}</pre>",
+    "inline.article.no.inst": "No instructions",
+    "inline.btn.asst.add": "⬇️ Add {{assistant}} to assistants"
   },
   "chat": {
     "cb.chatting": "💬 Chatting",
@@ -60,7 +73,9 @@ interface Resources {
     "btn.prev": "⬅️ Page {{page}}",
     "btn.next": "Page {{page}} ➡️",
     "btn.delete": "🗑️ Delete",
+    "btn.confirm": "✅ Confirm",
     "btn.cancel": "❌ Cancel",
+    "cb.cancelled": "❌ Cancelled.",
     "lang.feedback": "Language changed to 🇬🇧 English.",
     "coming.soon": "👟 Coming soon",
     "html.wait": "<i>Please wait...</i>",
@@ -77,7 +92,7 @@ interface Resources {
     "cb.new": "🤖 Choose assistant",
     "html.new": "Choose an <b>assistant</b> to start a new conversation with.",
     "btn.new": "➕ New conversation",
-    "html.convs": "💬 <b>Conversations</b>\n<i>Page ${{page}} of {{pages}}</i>",
+    "html.convs": "💬 <b>Conversations</b>\n<i>Page {{page}} of {{pages}}</i>",
     "html.convs.empty": "💬 <b>You have no previous conversations.</b>"
   },
   "settings": {
@@ -88,10 +103,11 @@ interface Resources {
     "cb.settings": "⚙️ Settings",
     "cb.response.text": "💬 Switched to text response.",
     "cb.response.voice": "🔈 Switched to voice response.",
-    "html.voice": "🗣️ Selected voice: <b>${{voice}}</b>",
+    "html.voice": "🗣️ Selected voice: <b>{{voice}}</b>",
     "cb.voice": "🗣️ Voices",
     "cb.voice.changed": "🗣️ Voice set to {{voice}}",
-    "html.lang.change": "🌐 <b>Change bot language</b>"
+    "html.lang.change": "🌐 <b>Change bot language</b>",
+    "cb.lang.change": "🌐 Change language"
   }
 }
 

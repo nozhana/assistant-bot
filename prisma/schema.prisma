@@ -31,7 +31,7 @@ model Assistant {
   name          String
   instructions  String?
   userId        Int
-  user          User           @relation(fields: [userId], references: [id])
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   guestIds      Int[]
   guests        User[]         @relation("guests", fields: [guestIds], references: [id])
   conversations Conversation[]

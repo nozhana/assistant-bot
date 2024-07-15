@@ -24,5 +24,12 @@
   "cb.restarted": "🔄 Restarted process.",
   "cb.creating": "🛜 Creating assistant...",
   "html.creating": "<i>Creating new assistant, please wait...</i>",
-  "html.created": "❇️ <b>Created new assistant successfully.</b>"
+  "html.created": "❇️ <b>Created new assistant successfully.</b>",
+  "cb.guest.missing": "🚫 Assistant doesn't seem to exist anymore.",
+  "cb.guest.exists": "🚫 You already have {{assistant}} in your library.",
+  "cb.guest.added": "✅ {{assistant}} added to library.",
+  "html.guest.added": "✅ Assistant added to library successfully.\n🤖 <b>Name:</b> <code>{{assistant}}</code>\n☝️ <b>Instructions:</b>\n<pre>{{instructions}}</pre>",
+  "inline.html.guest": "Here, try out this new assistant I created!\n🤖 <b>Name:</b> <code>{{assistant}}</code>\n☝️ <b>Instructions:</b>\n<pre>{{instructions}}</pre>",
+  "inline.article.no.inst": "No instructions",
+  "inline.btn.asst.add": "⬇️ Add {{assistant}} to assistants"
 }

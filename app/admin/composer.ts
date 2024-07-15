@@ -1,10 +1,11 @@
 import { Composer, Scenes } from "telegraf";
 import BotContext from "../middlewares/bot-context";
 import adminMenuScene from "./scenes/admin-menu-scene";
+import adminBroadcastScene from "./scenes/admin-broadcast-scene";
 
 const adminBot = new Composer<BotContext>();
 
-const stage = new Scenes.Stage([adminMenuScene]);
+const stage = new Scenes.Stage([adminMenuScene, adminBroadcastScene]);
 adminBot.use(stage.middleware());
 
 adminBot.command("admin", (ctx) => ctx.scene.enter("adminMenuScene"));

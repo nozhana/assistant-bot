@@ -2,6 +2,8 @@ import { Scenes } from "telegraf";
 import BotContext from "../middlewares/bot-context";
 import { message } from "telegraf/filters";
 import InlineKeyboard from "../util/inline-keyboard";
+import Constants from "../util/constants";
+import { createReadStream } from "fs";
 
 const newAssistantScene = new Scenes.BaseScene<BotContext>("newAssistantScene");
 
@@ -114,13 +116,14 @@ newAssistantScene.action("asst.create", async (ctx) => {
     .text(ctx.t("btn.delete"), `asst.${assistant.id}.del`)
     .text(ctx.t("asst:btn.back.assts"), "asst.back");
 
-  return ctx.replyWithHTML(
-    ctx.t("asst:html.asst", {
+  return ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
+    caption: ctx.t("asst:html.asst", {
       assistant: assistant.name,
       instructions: assistant.instructions,
     }),
-    { reply_markup: keyboard }
-  );
+    parse_mode: "HTML",
+    reply_markup: keyboard,
+  });
 });
 
 export default newAssistantScene;
