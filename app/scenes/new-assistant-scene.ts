@@ -90,13 +90,15 @@ newAssistantScene.action("asst.create", async (ctx) => {
   const remoteAsst = await openai.beta.assistants.create({
     model: "gpt-4o",
     name,
-    instructions,
+    instructions: instructions
+      .replace(/{{char}}/gi, name)
+      .replace(/{char}/gi, name),
     temperature: 0.7,
   });
   const assistant = await prisma.assistant.create({
     data: {
       name,
-      instructions,
+      instructions: instructions,
       serversideId: remoteAsst.id,
       userId: ctx.from.id,
     },
@@ -122,7 +124,11 @@ newAssistantScene.action("asst.create", async (ctx) => {
       {
         caption: ctx.t("asst:html.asst", {
           assistant: assistant.name,
-          instructions: assistant.instructions,
+          instructions: assistant.instructions
+            ?.replace(/{{user}}/gi, ctx.from.first_name)
+            .replace(/{user}/gi, ctx.from.first_name)
+            .replace(/{{char}}/gi, assistant.name)
+            .replace(/{char}/gi, assistant.name),
         }),
         parse_mode: "HTML",
         reply_markup: keyboard,
@@ -144,7 +150,11 @@ newAssistantScene.action("asst.create", async (ctx) => {
       await ctx.replyWithHTML(
         ctx.t("asst:html.asst", {
           assistant: assistant.name,
-          instructions: assistant.instructions,
+          instructions: assistant.instructions
+            ?.replace(/{{user}}/gi, ctx.from.first_name ?? "User")
+            .replace(/{user}/gi, ctx.from.first_name ?? "User")
+            .replace(/{{char}}/gi, assistant.name)
+            .replace(/{char}/gi, assistant.name),
         }),
         { reply_markup: keyboard }
       );

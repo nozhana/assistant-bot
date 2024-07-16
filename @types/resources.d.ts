@@ -34,6 +34,8 @@ interface Resources {
     "html.inst.toolong": "Instructions too long to print.",
     "html.asst.shared_one": "↗️ <b>Shared with {{count}} person.</b>",
     "html.asst.shared_other": "↗️ <b>Shared with {{count}} people.</b>",
+    "cb.name": "🤖 New name",
+    "cb.inst": "☝️ New instructions",
     "html.asst.new.name": "🤖 Enter a new <b>name</b> for the assistant.",
     "html.asst.new.inst": "☝️ Enter the <b>instructions</b> for your assistant.",
     "html.asst.new.confirm": "👀 Create assistant with this configuration?",

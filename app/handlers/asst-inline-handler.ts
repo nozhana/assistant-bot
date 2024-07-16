@@ -41,18 +41,28 @@ const asstInlineHandler = async (
       thumbnail_url: assistant.image ?? Constants.thumbnail(assistant.name),
       title: `🤖 ${assistant.name}`,
       description: `☝️ ${
-        (assistant.instructions?.length ?? 0) > 512
+        (assistant.instructions?.length ?? 0) > 3895
           ? ctx.t("asst:html.inst.toolong")
-          : assistant.instructions ?? ctx.t("asst:inline.article.no.inst")
+          : assistant.instructions
+              ?.replace(/{{char}}/gi, assistant.name)
+              .replace(/{char}/gi, assistant.name)
+              .replace(/{{user}}/gi, ctx.from.first_name)
+              .replace(/{user}/gi, ctx.from.first_name)
+              .slice(0, 512) ?? ctx.t("asst:inline.article.no.inst")
       }`,
       input_message_content: {
         message_text: ctx.t("asst:inline.html.guest", {
           assistant: assistant.name,
           instructions:
-            (assistant.instructions?.length ?? 0) > 256
+            (assistant.instructions?.length ?? 0) > 3895
               ? ctx.t("asst:html.inst.toolong")
               : escapeHtml(
-                  assistant.instructions ?? ctx.t("asst:inline.article.no.inst")
+                  assistant.instructions
+                    ?.replace(/{{char}}/gi, assistant.name)
+                    .replace(/{char}/gi, assistant.name)
+                    .replace(/{{user}}/gi, ctx.from.first_name)
+                    .replace(/{user}/gi, ctx.from.first_name) ??
+                    ctx.t("asst:inline.article.no.inst")
                 ),
         }),
         parse_mode: "HTML",

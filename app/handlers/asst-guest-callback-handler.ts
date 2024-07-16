@@ -55,10 +55,15 @@ const asstGuestCallbackHandler = async (
     ctx.t("asst:html.guest.added", {
       assistant: assistant.name,
       instructions:
-        (assistant.instructions?.length ?? 0) > 256
+        (assistant.instructions?.length ?? 0) > 3895
           ? ctx.t("asst:html.inst.toolong")
           : escapeHtml(
-              assistant.instructions ?? ctx.t("asst:inline.article.no.inst")
+              assistant.instructions
+                ?.replace(/{{char}}/gi, assistant.name)
+                .replace(/{char}/gi, assistant.name)
+                .replace(/{{user}}/gi, ctx.from.first_name)
+                .replace(/{user}/gi, ctx.from.first_name) ??
+                ctx.t("asst:inline.article.no.inst")
             ),
     }),
     { reply_markup: undefined, parse_mode: "HTML" }

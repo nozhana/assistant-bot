@@ -43,7 +43,9 @@ chatScene.enter(async (ctx) => {
         messages: {
           create: {
             role: "ASSISTANT",
-            content: conversation.assistant.greeting,
+            content: conversation.assistant.greeting
+              .replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
+              .replace(/{user}/gi, ctx.from?.first_name ?? "User"),
             userId: ctx.from!.id,
             assistantId: conversation.assistant.id,
             tokens: 0,
@@ -52,9 +54,21 @@ chatScene.enter(async (ctx) => {
       },
     });
     try {
-      await ctx.replyWithMarkdown(conversation.assistant.greeting);
+      await ctx.replyWithMarkdown(
+        conversation.assistant.greeting
+          .replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
+          .replace(/{user}/gi, ctx.from?.first_name ?? "User")
+          .replace(/{{char}}/gi, conversation.assistant.name)
+          .replace(/{char}/gi, conversation.assistant.name)
+      );
     } catch {
-      await ctx.reply(conversation.assistant.greeting);
+      await ctx.reply(
+        conversation.assistant.greeting
+          .replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
+          .replace(/{user}/gi, ctx.from?.first_name ?? "User")
+          .replace(/{{char}}/gi, conversation.assistant.name)
+          .replace(/{char}/gi, conversation.assistant.name)
+      );
     }
   }
 
@@ -220,6 +234,11 @@ async function handlePrompt(ctx: BotContext, text: string) {
   const stream = openai.beta.threads.createAndRunStream({
     assistant_id: conversation.assistant.serversideId,
     model: "gpt-4o",
+    instructions: conversation.assistant.instructions
+      ?.replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
+      .replace(/{user}/gi, ctx.from?.first_name ?? "User")
+      .replace(/{{char}}/gi, conversation.assistant.name)
+      .replace(/{char}/gi, conversation.assistant.name),
     thread: {
       messages: messages.map((e) => ({
         content: e.content,

@@ -166,8 +166,8 @@ assistantScene.action(/asst\.[^.]+\.del/g, async (ctx) => {
   return answerDeletedAndReturn();
 });
 
-assistantScene.action(/asst\.[^.]+\.chat/g, async (ctx) => {
-  const id = ctx.match[0].split(".")[1];
+assistantScene.action(/asst\.([^.]+)\.chat/g, async (ctx) => {
+  const id = ctx.match[1];
   const { prisma } = ctx;
   const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
   const conversation = await prisma.conversation.create({
@@ -179,13 +179,66 @@ assistantScene.action(/asst\.[^.]+\.chat/g, async (ctx) => {
   return ctx.scene.enter("chatScene", { conversationId: conversation.id });
 });
 
-assistantScene.action(/asst\.[^.]+\.name/g, async (ctx) => {
-  // const id = ctx.match[0].split(".")[1];
-  return ctx.answerCbQuery(ctx.t("coming.soon"), { show_alert: true });
+assistantScene.action(/asst\.([^.]+)\.name/g, async (ctx) => {
+  const id = ctx.match[1];
+  ctx.scene.state = { id, edit: "name" };
+
+  const keyboard = new InlineKeyboard().text(ctx.t("btn.back"), `asst.${id}`);
+
+  await ctx.answerCbQuery(ctx.t("asst:cb.name"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.replyWithHTML(ctx.t("asst:html.asst.new.name"), {
+    reply_markup: keyboard,
+  });
 });
 
-assistantScene.action(/asst\.[^.]+\.inst/g, async (ctx) => {
-  return ctx.answerCbQuery(ctx.t("coming.soon"), { show_alert: true });
+assistantScene.action(/asst\.([^.]+)\.inst/g, async (ctx) => {
+  const id = ctx.match[1];
+  ctx.scene.state = { id, edit: "instructions" };
+
+  const keyboard = new InlineKeyboard().text(ctx.t("btn.back"), `asst.${id}`);
+
+  await ctx.answerCbQuery(ctx.t("asst:cb.inst"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.replyWithHTML(ctx.t("asst:html.asst.new.inst"), {
+    reply_markup: keyboard,
+  });
+});
+
+assistantScene.hears(/^[^\/].*/g, async (ctx, next) => {
+  const { openai, prisma } = ctx;
+  const { id, edit } = ctx.scene.state as {
+    id?: string;
+    edit?: "name" | "instructions";
+  };
+
+  if (!id || !edit) return next();
+
+  ctx.scene.state = {};
+
+  const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
+
+  await openai.beta.assistants.update(assistant.serversideId, {
+    name: edit === "name" ? ctx.text : undefined,
+    instructions:
+      edit === "instructions"
+        ? ctx.text
+            .replace(/{{char}}/gi, assistant.name)
+            .replace(/{char}/gi, assistant.name)
+        : assistant.instructions
+            ?.replace(/{{char}}/gi, assistant.name)
+            .replace(/{char}/gi, assistant.name),
+  });
+
+  await prisma.assistant.update({
+    where: { id },
+    data: {
+      name: edit === "name" ? ctx.text : undefined,
+      instructions: edit === "instructions" ? ctx.text : undefined,
+    },
+  });
+
+  return assistantDetails(ctx, id);
 });
 
 assistantScene.action(/asst\.[^.]+\.code/g, async (ctx) => {
@@ -222,6 +275,10 @@ assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
   const id = ctx.match[0].split(".").pop();
   if (!id) return ctx.scene.reenter();
 
+  return assistantDetails(ctx, id);
+});
+
+async function assistantDetails(ctx: BotContext, id: string) {
   const { prisma } = ctx;
   const assistant = await prisma.assistant.findUniqueOrThrow({
     where: { id },
@@ -229,7 +286,7 @@ assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
 
   const isGuest = (await prisma.user.count({
     where: {
-      id: ctx.from.id,
+      id: ctx.from?.id,
       guestAssistantIds: { has: id },
       assistants: { none: { id } },
     },
@@ -269,7 +326,11 @@ assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
 
   let response: string = ctx.t("asst:html.asst", {
     assistant: assistant.name,
-    instructions: assistant.instructions,
+    instructions: assistant.instructions
+      ?.replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
+      .replace(/{user}/gi, ctx.from?.first_name ?? "User")
+      .replace(/{{char}}/gi, assistant.name)
+      .replace(/{char}/gi, assistant.name),
   });
 
   if (!isPersonalAssistant && !isGuest && assistant.guestIds.length)
@@ -277,8 +338,11 @@ assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
       "\n\n" +
       ctx.t("asst:html.asst.shared", { count: assistant.guestIds.length });
 
-  await ctx.answerCbQuery(`🤖 ${assistant.name}`);
-  await ctx.editMessageReplyMarkup(undefined);
+  if (ctx.callbackQuery) {
+    await ctx.answerCbQuery(`🤖 ${assistant.name}`);
+    await ctx.editMessageReplyMarkup(undefined);
+  }
+
   try {
     await ctx.replyWithPhoto(
       assistant.image ?? Constants.thumbnail(assistant.name),
@@ -314,6 +378,6 @@ assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
       await ctx.replyWithHTML(response, { reply_markup: keyboard });
     }
   }
-});
+}
 
 export default assistantScene;

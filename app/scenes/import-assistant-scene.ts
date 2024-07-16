@@ -1,4 +1,4 @@
-import { Composer, Scenes } from "telegraf";
+import { Scenes } from "telegraf";
 import BotContext from "../middlewares/bot-context";
 import Constants from "../util/constants";
 import { message } from "telegraf/filters";
@@ -48,29 +48,22 @@ importAssistantScene.url(
 
     const character = await res.json();
 
+    const instructions = `Imitate {{char}} based on the character description and answer {{user}}'s prompts based on {{char}}'s personality.
+
+Here is the character description.
+${character.description}
+
+Here is an example dialogue betweeen {{char}} and {{user}}.
+${character.definition}`;
+
     let remoteAsst;
     try {
       remoteAsst = await openai.beta.assistants.create({
         model: "gpt-4o",
         name: character.name,
-        instructions: `Imitate ${
-          character.name
-        } based on the character description and answer ${
-          ctx.message?.from.first_name ?? "the user"
-        }'s prompts based on ${
-          character.name
-        }'s personality.\n\nHere is the character description.\n${(
-          character.description as string
-        )
+        instructions: instructions
           .replace(/{{char}}/gi, character.name)
-          .replace(
-            /{{user}}/gi,
-            ctx.message?.from.first_name ?? "User"
-          )}\n\nHere is an example dialogue betweeen ${character.name} and ${
-          ctx.message?.from.first_name
-        }.\n${(character.definition as string)
-          .replace(/{{char}}/gi, character.name)
-          .replace(/{{user}}/gi, ctx.message?.from.first_name ?? "User")}`,
+          .replace(/{char}/gi, character.name),
       });
     } catch (error) {
       const keyboard = new InlineKeyboard().text(
@@ -87,11 +80,9 @@ importAssistantScene.url(
         name: character.name,
         userId: ctx.message!.from.id,
         serversideId: remoteAsst.id,
-        instructions: remoteAsst.instructions,
+        instructions: instructions,
         image: character.image,
-        greeting: character.greeting
-          .replace(/{{char}}/gi, character.name)
-          .replace(/{{user}}/gi, ctx.message?.from.first_name ?? "User"),
+        greeting: character.greeting,
       },
     });
 
@@ -113,14 +104,20 @@ importAssistantScene.url(
       .text(ctx.t("btn.delete"), `asst.${assistant.id}.del`)
       .text(ctx.t("asst:btn.back.assts"), "asst.back");
 
+    const response = ctx.t("asst:html.asst", {
+      assistant: assistant.name,
+      instructions: assistant.instructions
+        ?.replace(/{{user}}/gi, ctx.message?.from.first_name ?? "User")
+        .replace(/{user}/gi, ctx.message?.from.first_name ?? "User")
+        .replace(/{{char}}/gi, assistant.name)
+        .replace(/{char}/gi, assistant.name),
+    });
+
     try {
       await ctx.replyWithPhoto(
         assistant.image ?? Constants.thumbnail(assistant.name),
         {
-          caption: ctx.t("asst:html.asst", {
-            assistant: assistant.name,
-            instructions: assistant.instructions,
-          }),
+          caption: response,
           parse_mode: "HTML",
           reply_markup: keyboard,
         }
@@ -138,13 +135,7 @@ importAssistantScene.url(
         });
       }
       try {
-        await ctx.replyWithHTML(
-          ctx.t("asst:html.asst", {
-            assistant: assistant.name,
-            instructions: assistant.instructions,
-          }),
-          { reply_markup: keyboard }
-        );
+        await ctx.replyWithHTML(response, { reply_markup: keyboard });
       } catch {
         await ctx.replyWithHTML(
           ctx.t("asst:html.asst", {
