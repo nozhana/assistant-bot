@@ -2,8 +2,7 @@ import { Scenes } from "telegraf";
 import BotContext from "../middlewares/bot-context";
 import { message } from "telegraf/filters";
 import InlineKeyboard from "../util/inline-keyboard";
-import Constants from "../util/constants";
-import { createReadStream } from "fs";
+import Constants, { RssTool } from "../util/constants";
 
 const newAssistantScene = new Scenes.BaseScene<BotContext>("newAssistantScene");
 
@@ -103,6 +102,7 @@ newAssistantScene.action("asst.create", async (ctx) => {
       userId: ctx.from.id,
     },
   });
+
   await ctx.replyWithHTML(ctx.t("asst:html.created"));
   await ctx.deleteMessage(waitMessage.message_id);
   await ctx.scene.enter("assistantScene", undefined, true);
@@ -114,6 +114,7 @@ newAssistantScene.action("asst.create", async (ctx) => {
     )
     .text(ctx.t("asst:btn.conv.new"), `asst.${assistant.id}.chat`)
     .text(ctx.t("asst:btn.codeinterpreter"), `asst.${assistant.id}.code`)
+    .text(ctx.t("asst:btn.rss"), `asst.${assistant.id}.rss`)
     .switchToChat(ctx.t("asst:btn.share"), assistant.name)
     .text(ctx.t("btn.delete"), `asst.${assistant.id}.del`)
     .text(ctx.t("asst:btn.back.assts"), "asst.back");

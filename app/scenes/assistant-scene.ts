@@ -3,7 +3,7 @@ import BotContext from "../middlewares/bot-context";
 import { AssistantTool } from "openai/resources/beta/assistants";
 import InlineKeyboard from "../util/inline-keyboard";
 import initializeUserAndPersonalAssistant from "../handlers/init-user";
-import Constants from "../util/constants";
+import Constants, { RssTool } from "../util/constants";
 
 const assistantScene = new Scenes.BaseScene<BotContext>("assistantScene");
 
@@ -241,39 +241,90 @@ assistantScene.hears(/^[^\/].*/g, async (ctx, next) => {
   return assistantDetails(ctx, id);
 });
 
-assistantScene.action(/asst\.[^.]+\.code/g, async (ctx) => {
-  const id = ctx.match[0].split(".")[1];
+assistantScene.action(/asst\.([^.]+)\.code/g, async (ctx) => {
+  const id = ctx.match[1];
   const { prisma, openai } = ctx;
-  const localAsst = await prisma.assistant.findUniqueOrThrow({ where: { id } });
+  const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
   const remoteAsst = await openai.beta.assistants.retrieve(
-    localAsst.serversideId
-  );
-  const isCodeOn = remoteAsst.tools.filter(
-    (v) => v.type === "code_interpreter"
-  ).length;
-
-  const tools: AssistantTool[] = remoteAsst.tools.filter(
-    (v) => v.type !== "code_interpreter"
+    assistant.serversideId
   );
 
-  if (!isCodeOn) {
-    tools.push({ type: "code_interpreter" });
+  let tools: AssistantTool[];
+  if (assistant.hasCode)
+    tools = remoteAsst.tools.filter((v) => v.type !== "code_interpreter");
+  else tools = [...remoteAsst.tools, { type: "code_interpreter" }];
+
+  try {
+    await openai.beta.assistants.update(assistant.serversideId, { tools });
+    await ctx.answerCbQuery(
+      ctx.t(
+        assistant.hasCode
+          ? "asst:cb.codeinterpreter.off"
+          : "asst:cb.codeinterpreter.on",
+        { assistant: remoteAsst.name }
+      ),
+      { show_alert: true }
+    );
+  } catch {
+    await ctx.answerCbQuery(ctx.t("cb.error"), { show_alert: true });
   }
 
-  await openai.beta.assistants.update(localAsst.serversideId, { tools });
+  await prisma.assistant.update({
+    where: { id },
+    data: { hasCode: !assistant.hasCode },
+  });
 
-  await ctx.answerCbQuery(
-    ctx.t(
-      isCodeOn ? "asst:cb.codeinterpreter.off" : "asst:cb.codeinterpreter.on",
-      { assistant: remoteAsst.name }
-    ),
-    { show_alert: true }
+  await ctx.deleteMessage();
+  return assistantDetails(ctx, id);
+});
+
+assistantScene.action(/asst\.([^.]+)\.rss/g, async (ctx) => {
+  const id = ctx.match[1];
+  const { openai, prisma } = ctx;
+  const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
+  const remoteAsst = await openai.beta.assistants.retrieve(
+    assistant.serversideId
   );
+
+  let tools: AssistantTool[];
+  if (assistant.hasRss)
+    tools = remoteAsst.tools.filter(
+      (v) =>
+        (v.type === "function" && v.function.name !== "fetchRssFeed") ||
+        v.type !== "function"
+    );
+  else tools = [...remoteAsst.tools, { ...RssTool }];
+
+  try {
+    await openai.beta.assistants.update(assistant.serversideId, { tools });
+    await ctx.answerCbQuery(
+      ctx.t(assistant.hasRss ? "asst:cb.rss.off" : "asst:cb.rss.on", {
+        assistant: assistant.name,
+      }),
+      { show_alert: true }
+    );
+  } catch {
+    await ctx.answerCbQuery(ctx.t("cb.error"), { show_alert: true });
+  }
+
+  await prisma.assistant.update({
+    where: { id },
+    data: { hasRss: !assistant.hasRss },
+  });
+
+  await ctx.deleteMessage();
+  return assistantDetails(ctx, id);
 });
 
 assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
+  const { prisma } = ctx;
   const id = ctx.match[0].split(".").pop();
   if (!id) return ctx.scene.reenter();
+
+  const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
+
+  await ctx.answerCbQuery(`🤖 ${assistant.name}`);
+  await ctx.editMessageReplyMarkup(undefined);
 
   return assistantDetails(ctx, id);
 });
@@ -284,15 +335,7 @@ async function assistantDetails(ctx: BotContext, id: string) {
     where: { id },
   });
 
-  const isGuest = (await prisma.user.count({
-    where: {
-      id: ctx.from?.id,
-      guestAssistantIds: { has: id },
-      assistants: { none: { id } },
-    },
-  }))
-    ? true
-    : false;
+  const isGuest = assistant.guestIds.includes(ctx.from?.id ?? 0);
 
   const isPersonalAssistant =
     assistant.name.toLowerCase() === "personal assistant";
@@ -312,9 +355,14 @@ async function assistantDetails(ctx: BotContext, id: string) {
     )
     .text(ctx.t("asst:btn.conv.new"), `asst.${assistant.id}.chat`)
     .text(
-      ctx.t("asst:btn.codeinterpreter"),
+      (assistant.hasCode ? "✅ " : "") + ctx.t("asst:btn.codeinterpreter"),
       `asst.${assistant.id}.code`,
-      isGuest || isPersonalAssistant
+      isGuest
+    )
+    .text(
+      (assistant.hasRss ? "✅ " : "") + ctx.t("asst:btn.rss"),
+      `asst.${assistant.id}.rss`,
+      isGuest
     )
     .switchToChat(
       ctx.t("asst:btn.share"),
@@ -337,11 +385,6 @@ async function assistantDetails(ctx: BotContext, id: string) {
     response +=
       "\n\n" +
       ctx.t("asst:html.asst.shared", { count: assistant.guestIds.length });
-
-  if (ctx.callbackQuery) {
-    await ctx.answerCbQuery(`🤖 ${assistant.name}`);
-    await ctx.editMessageReplyMarkup(undefined);
-  }
 
   try {
     await ctx.replyWithPhoto(

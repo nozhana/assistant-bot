@@ -32,6 +32,8 @@ model Assistant {
   instructions  String?
   greeting      String?
   image         String?
+  hasCode       Boolean        @default(false) @db.Bool
+  hasRss        Boolean        @default(false) @db.Bool
   userId        Int
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   guestIds      Int[]

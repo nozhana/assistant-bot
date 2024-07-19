@@ -19,6 +19,7 @@
     "i18next": "^23.11.5",
     "kysely": "^0.27.2",
     "openai": "^4.52.3",
+    "rss-parser": "^3.13.0",
     "telegraf": "^4.16.3",
     "typescript": "^5.5.3"
   },

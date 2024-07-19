@@ -10,6 +10,10 @@ import escapeHtml from "../util/escape-html";
 import { InputMediaPhoto } from "telegraf/typings/core/types/typegram";
 import { VectorStore } from "openai/resources/beta/vector-stores/vector-stores";
 import { FileObject } from "openai/resources";
+import OpenAIEventHandler from "../util/event-handler";
+import { randomUUID } from "crypto";
+import { RunSubmitToolOutputsParams } from "openai/resources/beta/threads/runs/runs";
+import Parser from "rss-parser";
 
 const chatScene = new Scenes.BaseScene<BotContext>("chatScene");
 export default chatScene;
@@ -167,6 +171,8 @@ chatScene.on(message("document"), async (ctx) => {
     file_ids: [...codeFileIds, remoteFile.id],
   };
 
+  tools.push(...remoteAsst.tools.filter((v) => v.type === "function"));
+
   await openai.beta.assistants.update(assistant.serversideId, {
     tools,
     tool_resources,
@@ -231,6 +237,235 @@ async function handlePrompt(ctx: BotContext, text: string) {
     },
   });
 
+  let responseMessage: {
+    id?: string;
+    role: "USER" | "ASSISTANT" | "SYSTEM";
+    content?: string;
+  } = { role: "ASSISTANT" };
+
+  const eventHandler = new OpenAIEventHandler(openai)
+    .register("textDone", async (content) => {
+      try {
+        const message = await prisma.message.create({
+          data: {
+            role: "ASSISTANT",
+            content: content.value,
+            tokens: stream.currentRun()?.usage?.completion_tokens ?? 0,
+            userId: conversation.userId,
+            assistantId: conversation.assistantId,
+            conversationId: conversation.id,
+          },
+        });
+        responseMessage = message;
+
+        if (content.annotations) {
+          for (let annotation of content.annotations) {
+            if (annotation.type === "file_path") {
+              const res = await openai.files.content(
+                annotation.file_path.file_id
+              );
+              const buffer = Buffer.from(await res.arrayBuffer());
+              await ctx.replyWithDocument(
+                {
+                  source: buffer,
+                  filename: annotation.text.split("/").pop(),
+                },
+                { caption: `📁 ${annotation.file_path.file_id}` }
+              );
+            }
+          }
+        }
+
+        const chunks = content.value.match(/[\s\S]{1,3895}/g) ?? [
+          content.value,
+        ];
+
+        if (ctx.session.settings.isVoiceResponse) {
+          await ctx.sendChatAction("record_voice");
+          for (let chunk of chunks) {
+            const audioRes = await openai.audio.speech.create({
+              input: chunk,
+              model: "tts-1",
+              voice: ctx.session.settings.voice,
+              response_format: "opus",
+            });
+            const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
+            if (!audioBuffer.length) {
+              try {
+                await ctx.deleteMessage(waitMessage.message_id);
+              } catch {}
+              await ctx.reply(ctx.t("chat:html.response.audio.failed"));
+              continue;
+            }
+
+            await ctx.sendChatAction("upload_voice");
+            await ctx.replyWithVoice({
+              source: audioBuffer,
+              filename: `${ctx.message?.message_id}.ogg`,
+            });
+          }
+        } else {
+          for (let chunk of chunks) {
+            try {
+              await ctx.replyWithMarkdown(chunk);
+            } catch {
+              await ctx.reply(chunk);
+            }
+          }
+        }
+
+        try {
+          await renameConversationIfNeeded(userMessage.content, chunks[0]);
+          await ctx.deleteMessage(waitMessage.message_id);
+        } catch {}
+      } catch (error) {
+        try {
+          await ctx.deleteMessage(waitMessage.message_id);
+        } catch {}
+        await ctx.replyWithHTML(`❌ Error! ${error}`);
+      }
+    })
+    .register("imageDone", async (image) => {
+      try {
+        if (typeof image === "string") {
+          const res = await fetch(image);
+          const buffer = Buffer.from(await res.arrayBuffer());
+          await ctx.replyWithPhoto({
+            source: buffer,
+            filename: `${image}.png`,
+          });
+        } else {
+          await ctx.replyWithPhoto({
+            source: image,
+            filename: `${randomUUID()}.png`,
+          });
+        }
+      } catch (error) {
+        try {
+          await ctx.deleteMessage(waitMessage.message_id);
+        } catch {}
+        await ctx.replyWithHTML(`❌ Error! ${error}`);
+      }
+    })
+    .register("toolCallsAction", async (toolCalls) => {
+      const toolOutputs: RunSubmitToolOutputsParams.ToolOutput[] = [];
+
+      try {
+        for (const toolCall of toolCalls) {
+          switch (toolCall.function.name) {
+            case "fetchRssFeed":
+              const params = JSON.parse(toolCall.function.arguments);
+              await ctx.replyWithHTML(
+                ctx.t("chat:html.rss.created", { url: params.url })
+              );
+              const rss = await new Parser().parseURL(params.url);
+              const output: {
+                title?: string;
+                link?: string;
+                description?: string;
+                image?: { link?: string; url: string; title?: string };
+                items?: {
+                  title?: string;
+                  link?: string;
+                  description?: string;
+                  summary?: string;
+                  contentSnippet?: string;
+                  pubDate?: string;
+                }[];
+              } = { ...rss };
+
+              output.items = output.items?.slice(0, 10);
+
+              toolOutputs.push({
+                tool_call_id: toolCall.id,
+                output: JSON.stringify(output),
+              });
+              break;
+            default:
+              break;
+          }
+        }
+      } catch (error) {
+        try {
+          await ctx.deleteMessage(waitMessage.message_id);
+        } catch {}
+        await ctx.replyWithHTML(`❌ Error! ${error}`);
+      }
+
+      return toolOutputs;
+    })
+    .register("toolCallsDone", async (toolCalls) => {
+      try {
+        for (const toolCall of toolCalls) {
+          switch (toolCall.type) {
+            case "code_interpreter":
+              let response = ctx.t("chat:html.codeinterpreter.done") + "\n";
+              let mediaGroup: InputMediaPhoto[] = [];
+              for (let output of toolCall.code_interpreter.outputs) {
+                if (output.type === "logs") {
+                  response +=
+                    ctx.t("chat:html.codeinterpreter.done") +
+                    "\n<pre>" +
+                    escapeHtml(output.logs) +
+                    "</pre>\n";
+                } else {
+                  const res = await openai.files.content(output.image.file_id);
+                  mediaGroup.push({
+                    type: "photo",
+                    media: res,
+                    caption: `<code>${output.image.file_id}.png</code>`,
+                    parse_mode: "HTML",
+                  });
+                }
+              }
+
+              if (mediaGroup.length) await ctx.replyWithMediaGroup(mediaGroup);
+              await ctx.replyWithHTML(response);
+              break;
+            case "file_search":
+              await ctx.replyWithHTML(ctx.t("chat:html.filesearch.done"));
+              break;
+            case "function":
+              if (toolCall.function.name === "fetchRssFeed") {
+                await ctx.replyWithHTML(ctx.t("chat:html.rss.done"));
+              }
+              break;
+          }
+        }
+      } catch (error) {
+        try {
+          await ctx.deleteMessage(waitMessage.message_id);
+        } catch {}
+        await ctx.replyWithHTML(`❌ Error! ${error}`);
+      }
+    })
+    .register("runCompleted", async (runId, threadId) => {
+      try {
+        const run = await openai.beta.threads.runs.retrieve(threadId, runId);
+        await prisma.message.update({
+          where: { id: userMessage.id },
+          data: { tokens: run.usage?.prompt_tokens },
+        });
+        if (responseMessage.id)
+          await prisma.message.update({
+            where: { id: responseMessage.id },
+            data: { tokens: run.usage?.completion_tokens },
+          });
+        await ctx.replyWithHTML(
+          ctx.t("chat:html.usage", {
+            promptTokens: run.usage?.prompt_tokens,
+            completionTokens: run.usage?.completion_tokens,
+            totalTokens: run.usage?.total_tokens,
+          })
+        );
+      } catch (error) {
+        try {
+          await ctx.deleteMessage(waitMessage.message_id);
+        } catch {}
+        await ctx.replyWithHTML(`❌ Error! ${error}`);
+      }
+    });
+
   const stream = openai.beta.threads.createAndRunStream({
     assistant_id: conversation.assistant.serversideId,
     model: "gpt-4o",
@@ -246,169 +481,15 @@ async function handlePrompt(ctx: BotContext, text: string) {
       })),
     },
     temperature: 0.7,
-    max_completion_tokens: 8192,
+    max_completion_tokens: 4095,
+    parallel_tool_calls: false,
+    truncation_strategy: { type: "last_messages", last_messages: 10 },
   });
 
-  let responseMessage: {
-    id?: string;
-    role: "USER" | "ASSISTANT" | "SYSTEM";
-    content?: string;
-  } = { role: "ASSISTANT" };
-
-  stream.on("textDone", async (content) => {
-    const message = await prisma.message.create({
-      data: {
-        role: "ASSISTANT",
-        content: content.value,
-        tokens: stream.currentRun()?.usage?.completion_tokens ?? 0,
-        userId: conversation.userId,
-        assistantId: conversation.assistantId,
-        conversationId: conversation.id,
-      },
-    });
-    responseMessage = message;
-
-    if (content.annotations) {
-      for (let annotation of content.annotations) {
-        if (annotation.type === "file_path") {
-          const res = await openai.files.content(annotation.file_path.file_id);
-          const buffer = Buffer.from(await res.arrayBuffer());
-          await ctx.replyWithDocument(
-            {
-              source: buffer,
-              filename: annotation.text.split("/").pop(),
-            },
-            { caption: `📁 ${annotation.file_path.file_id}` }
-          );
-        }
-      }
-    }
-
-    const chunks = content.value.match(/[\s\S]{1,3895}/g) ?? [content.value];
-
-    if (ctx.session.settings.isVoiceResponse) {
-      await ctx.sendChatAction("record_voice");
-      for (let chunk of chunks) {
-        const audioRes = await openai.audio.speech.create({
-          input: chunk,
-          model: "tts-1",
-          voice: ctx.session.settings.voice,
-          response_format: "opus",
-        });
-        const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
-        if (!audioBuffer.length) {
-          try {
-            await ctx.deleteMessage(waitMessage.message_id);
-          } catch {}
-          await ctx.reply(ctx.t("chat:html.response.audio.failed"));
-          continue;
-        }
-
-        await ctx.sendChatAction("upload_voice");
-        await ctx.replyWithVoice({
-          source: audioBuffer,
-          filename: `${ctx.message?.message_id}.ogg`,
-        });
-      }
-      try {
-        await renameConversationIfNeeded(userMessage.content, chunks[0]);
-        await ctx.deleteMessage(waitMessage.message_id);
-      } catch {}
-      return;
-    }
-
-    for (let chunk of chunks) {
-      try {
-        await ctx.replyWithMarkdown(chunk);
-      } catch {
-        await ctx.reply(chunk);
-      }
-    }
-
-    try {
-      await renameConversationIfNeeded(userMessage.content, chunks[0]);
-      await ctx.deleteMessage(waitMessage.message_id);
-    } catch {}
-  });
-
-  stream.on("toolCallCreated", async (toolCall) => {
-    switch (toolCall.type) {
-      case "code_interpreter":
-        await ctx.replyWithHTML(
-          ctx.t("chat:html.codeinterpreter.created") +
-            "\n<pre>" +
-            escapeHtml(toolCall.code_interpreter.input) +
-            "</pre>"
-        );
-        break;
-      case "file_search":
-        await ctx.replyWithHTML(ctx.t("chat:html.filesearch.created"));
-        break;
-      default:
-        break;
-    }
-  });
-
-  stream.on("toolCallDone", async (toolCall) => {
-    switch (toolCall.type) {
-      case "code_interpreter":
-        let response = ctx.t("chat:html.codeinterpreter.done") + "\n";
-        let mediaGroup: InputMediaPhoto[] = [];
-        for (let output of toolCall.code_interpreter.outputs) {
-          if (output.type === "logs") {
-            response +=
-              ctx.t("chat:html.codeinterpreter.done") +
-              "\n<pre>" +
-              escapeHtml(output.logs) +
-              "</pre>\n";
-          } else {
-            const res = await openai.files.content(output.image.file_id);
-            mediaGroup.push({
-              type: "photo",
-              media: res,
-              caption: `<code>${output.image.file_id}.png</code>`,
-              parse_mode: "HTML",
-            });
-          }
-        }
-
-        if (mediaGroup.length) await ctx.replyWithMediaGroup(mediaGroup);
-        await ctx.replyWithHTML(response);
-        break;
-      case "file_search":
-        await ctx.replyWithHTML(ctx.t("chat:html.filesearch.done"));
-      case "function":
-        break;
-    }
-  });
-
-  stream.on("imageFileDone", async (content) => {
-    const res = await openai.files.content(content.file_id);
-    const buffer = Buffer.from(await res.arrayBuffer());
-    await ctx.replyWithPhoto({
-      source: buffer,
-      filename: `${content.file_id}.png`,
-    });
-  });
-
-  stream.on("end", async () => {
-    const run = await stream.finalRun();
-    await prisma.message.update({
-      where: { id: userMessage.id },
-      data: { tokens: run.usage?.prompt_tokens },
-    });
-    await prisma.message.update({
-      where: { id: responseMessage.id },
-      data: { tokens: run.usage?.completion_tokens },
-    });
-    await ctx.replyWithHTML(
-      ctx.t("chat:html.usage", {
-        promptTokens: run.usage?.prompt_tokens,
-        completionTokens: run.usage?.completion_tokens,
-        totalTokens: run.usage?.total_tokens,
-      })
-    );
-  });
+  // for await (const event of stream) {
+  //   eventHandler.emit("event", event);
+  // }
+  await eventHandler.observe(stream);
 
   async function renameConversationIfNeeded(prompt: string, response: string) {
     if (!conversation.title) {

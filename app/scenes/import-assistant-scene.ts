@@ -20,6 +20,7 @@ importAssistantScene.enter(async (ctx) => {
 
 importAssistantScene.action("asst.back", async (ctx) => {
   await ctx.answerCbQuery(ctx.t("asst:cb.assts"));
+  await ctx.editMessageReplyMarkup(undefined);
   await ctx.scene.enter("assistantScene");
 });
 
@@ -100,6 +101,7 @@ ${character.definition}`;
       )
       .text(ctx.t("asst:btn.conv.new"), `asst.${assistant.id}.chat`)
       .text(ctx.t("asst:btn.codeinterpreter"), `asst.${assistant.id}.code`)
+      .text(ctx.t("asst:btn.rss"), `asst.${assistant.id}.rss`)
       .switchToChat(ctx.t("asst:btn.share"), assistant.name)
       .text(ctx.t("btn.delete"), `asst.${assistant.id}.del`)
       .text(ctx.t("asst:btn.back.assts"), "asst.back");

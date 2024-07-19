@@ -8,10 +8,12 @@
   "cb.leave": "🚫 Left conversation.",
   "html.response.audio.failed": "❌ <b>Failed to encode response audio.</b>",
   "html.codeinterpreter.created": "🧑‍💻 <i>Running code...</i>",
-  "html.codeinterpreter.done": "🧑‍💻 <i>Code run successfully.</i>",
+  "html.codeinterpreter.done": "✅ <i>Code run successfully.</i>",
   "html.codeinterpreter.logs": "<b>Console log \\></b>",
   "html.filesearch.created": "📁 <i>Searching files...</i>",
-  "html.filesearch.done": "📁 <i>File search done.</i>",
+  "html.filesearch.done": "✅ <i>File search done.</i>",
+  "html.rss.created": "⏬ <i>Fetching RSS feed:</i> <code>{{url}}</code>",
+  "html.rss.done": "✅ <i>RSS data fetched successfully.</i>",
   "html.usage": "🗨️ <b>Prompt:</b> <code>{{promptTokens}} tokens</code>\n💬 <b>Completion:</b> <code>{{completionTokens}} tokens</code>\n\n💸 <b>Total:</b> <code>{{totalTokens}} tokens</code>",
   "html.rename": "✨ Renamed conversation:"
 }
