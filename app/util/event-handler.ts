@@ -88,6 +88,12 @@ class OpenAIEventHandler extends EventEmitter {
         case "error":
           this.handleError(event.data.code, event.data.message);
           break;
+        case "thread.run.failed":
+          this.handleError(
+            event.data.last_error?.code || null,
+            event.data.last_error?.message || "No message"
+          );
+          break;
         default:
           break;
       }
