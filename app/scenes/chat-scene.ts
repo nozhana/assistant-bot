@@ -15,6 +15,7 @@ import { randomUUID } from "crypto";
 import { RunSubmitToolOutputsParams } from "openai/resources/beta/threads/runs/runs";
 import Parser from "rss-parser";
 import Constants from "../util/constants";
+import { AssistantStream } from "openai/lib/AssistantStream";
 
 const chatScene = new Scenes.BaseScene<BotContext>("chatScene");
 export default chatScene;
@@ -496,30 +497,35 @@ async function handlePrompt(ctx: BotContext, text: string) {
       }
     });
 
-  const stream = openai.beta.threads.createAndRunStream({
-    assistant_id: conversation.assistant.serversideId,
-    model: "gpt-4o",
-    instructions: conversation.assistant.instructions
-      ?.replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
-      .replace(/{user}/gi, ctx.from?.first_name ?? "User")
-      .replace(/{{char}}/gi, conversation.assistant.name)
-      .replace(/{char}/gi, conversation.assistant.name),
-    thread: {
-      messages: messages.map((e) => ({
-        content: e.content,
-        role: e.role === "ASSISTANT" ? "assistant" : "user",
-      })),
-    },
-    temperature: 0.7,
-    max_completion_tokens: 4095,
-    parallel_tool_calls: false,
-    truncation_strategy: { type: "last_messages", last_messages: 10 },
-  });
+  let stream: AssistantStream;
+  try {
+    stream = openai.beta.threads.createAndRunStream({
+      assistant_id: conversation.assistant.serversideId,
+      model: "gpt-4o",
+      instructions: conversation.assistant.instructions
+        ?.replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
+        .replace(/{user}/gi, ctx.from?.first_name ?? "User")
+        .replace(/{{char}}/gi, conversation.assistant.name)
+        .replace(/{char}/gi, conversation.assistant.name),
+      thread: {
+        messages: messages.map((e) => ({
+          content: e.content,
+          role: e.role === "ASSISTANT" ? "assistant" : "user",
+        })),
+      },
+      temperature: 0.7,
+      max_completion_tokens: 4095,
+      parallel_tool_calls: false,
+      truncation_strategy: { type: "last_messages", last_messages: 10 },
+    });
 
-  // for await (const event of stream) {
-  //   eventHandler.emit("event", event);
-  // }
-  await eventHandler.observe(stream);
+    // for await (const event of stream) {
+    //   eventHandler.emit("event", event);
+    // }
+    await eventHandler.observe(stream);
+  } catch (error) {
+    return ctx.reply("🛑 Error: " + error);
+  }
 
   async function renameConversationIfNeeded(prompt: string, response: string) {
     if (!conversation.title) {
