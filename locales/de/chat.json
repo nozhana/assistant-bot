@@ -12,6 +12,10 @@
   "html.codeinterpreter.logs": "<b>Konsolenlog \\></b>",
   "html.filesearch.created": "📁 <i>Dateien suchen...</i>",
   "html.filesearch.done": "📁 <i>Dateisuche abgeschlossen.</i>",
+  "html.rss.created": "⏬ <i>RSS-Feed abrufen:</i>\n<code>{{url}}</code>",
+  "html.rss.done": "✅ <i>RSS-Daten erfolgreich abgerufen.</i>",
+  "html.weather.created": "🌦️ <i>Wetterdaten abrufen:</i> <code>{{query}}</code>",
+  "html.weather.done": "🌦️ <i>Wetterdaten erfolgreich abgerufen.</i>",
   "html.usage": "🗨️ <b>Eingabe:</b> <code>{{promptTokens}} Token</code>\n💬 <b>Ausgabe:</b> <code>{{completionTokens}} Token</code>\n\n💸 <b>Gesamt:</b> <code>{{totalTokens}} Token</code>",
   "html.rename": "✨ Gespräch umbenannt:"
 }

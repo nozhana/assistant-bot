@@ -12,7 +12,7 @@
   "html.codeinterpreter.logs": "<b>Console log \\></b>",
   "html.filesearch.created": "📁 <i>Searching files...</i>",
   "html.filesearch.done": "✅ <i>File search done.</i>",
-  "html.rss.created": "⏬ <i>Fetching RSS feed:</i> <code>{{url}}</code>",
+  "html.rss.created": "⏬ <i>Fetching RSS feed:</i>\n<code>{{url}}</code>",
   "html.rss.done": "✅ <i>RSS data fetched successfully.</i>",
   "html.weather.created": "🌦️ <i>Fetching weather data:</i> <code>{{query}}</code>",
   "html.weather.done": "🌦️ <i>Weather data fetched successfully.</i>",

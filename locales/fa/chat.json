@@ -12,6 +12,10 @@
   "html.codeinterpreter.logs": "<b>لاگ کنسول \\></b>",
   "html.filesearch.created": "📁 <i>در حال جستجوی اسناد...</i>",
   "html.filesearch.done": "📁 <i>جستجوی اسناد به پایان رسید.</i>",
+  "html.rss.created": "⏬ <i>در حال خواندن RSS فید:</i>\n<code>{{url}}</code>",
+  "html.rss.done": "✅ <i>فید RSS با موفقیت دریافت شد.</i>",
+  "html.weather.created": "🌦️ <i>در حال بارگیری اطلاعات آب و هوایی برای</i> <code>{{query}}</code>",
+  "html.weather.done": "🌦️ <i>اطلاعات آب و هوایی با موفقیت بارگیری شد.</i>",
   "html.usage": "🗨️ <b>پرسش:</b> <code>{{promptTokens}} توکن</code>\n💬 <b>پاسخ:</b> <code>{{completionTokens}} توکن</code>\n\n💸 <b>هزینه‌ی نهایی:</b> <code>{{totalTokens}} توکن</code>",
   "html.rename": "✨ نام جدید گفتگو:"
 }
