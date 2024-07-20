@@ -3,7 +3,7 @@ import BotContext from "../middlewares/bot-context";
 import { AssistantTool } from "openai/resources/beta/assistants";
 import InlineKeyboard from "../util/inline-keyboard";
 import initializeUserAndPersonalAssistant from "../handlers/init-user";
-import Constants, { RssTool } from "../util/constants";
+import Constants, { RssTool, WeatherTool } from "../util/constants";
 
 const assistantScene = new Scenes.BaseScene<BotContext>("assistantScene");
 
@@ -316,6 +316,47 @@ assistantScene.action(/asst\.([^.]+)\.rss/g, async (ctx) => {
   return assistantDetails(ctx, id);
 });
 
+assistantScene.action(/asst\.([^.]+)\.weather/g, async (ctx) => {
+  const id = ctx.match[1];
+  const { openai, prisma } = ctx;
+  const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
+  const remoteAsst = await openai.beta.assistants.retrieve(
+    assistant.serversideId
+  );
+
+  let tools: AssistantTool[];
+  if (assistant.hasWeather)
+    tools = remoteAsst.tools.filter(
+      (v) =>
+        (v.type === "function" && v.function.name !== "fetchWeather") ||
+        v.type !== "function"
+    );
+  else tools = [...remoteAsst.tools, { ...WeatherTool }];
+
+  try {
+    await openai.beta.assistants.update(assistant.serversideId, { tools });
+    await ctx.answerCbQuery(
+      ctx.t(
+        assistant.hasWeather ? "asst:cb.weather.off" : "asst:cb.weather.on",
+        {
+          assistant: assistant.name,
+        }
+      ),
+      { show_alert: true }
+    );
+  } catch {
+    await ctx.answerCbQuery(ctx.t("cb.error"), { show_alert: true });
+  }
+
+  await prisma.assistant.update({
+    where: { id },
+    data: { hasWeather: !assistant.hasWeather },
+  });
+
+  await ctx.deleteMessage();
+  return assistantDetails(ctx, id);
+});
+
 assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
   const { prisma } = ctx;
   const id = ctx.match[0].split(".").pop();
@@ -362,6 +403,11 @@ async function assistantDetails(ctx: BotContext, id: string) {
     .text(
       (assistant.hasRss ? "✅ " : "") + ctx.t("asst:btn.rss"),
       `asst.${assistant.id}.rss`,
+      isGuest
+    )
+    .text(
+      (assistant.hasWeather ? "✅ " : "") + ctx.t("asst:btn.weather"),
+      `asst.${assistant.id}.weather`,
       isGuest
     )
     .switchToChat(

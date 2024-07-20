@@ -14,6 +14,8 @@
   "html.filesearch.done": "✅ <i>File search done.</i>",
   "html.rss.created": "⏬ <i>Fetching RSS feed:</i> <code>{{url}}</code>",
   "html.rss.done": "✅ <i>RSS data fetched successfully.</i>",
+  "html.weather.created": "🌦️ <i>Fetching weather data:</i> <code>{{query}}</code>",
+  "html.weather.done": "🌦️ <i>Weather data fetched successfully.</i>",
   "html.usage": "🗨️ <b>Prompt:</b> <code>{{promptTokens}} tokens</code>\n💬 <b>Completion:</b> <code>{{completionTokens}} tokens</code>\n\n💸 <b>Total:</b> <code>{{totalTokens}} tokens</code>",
   "html.rename": "✨ Renamed conversation:"
 }

@@ -14,6 +14,7 @@ import OpenAIEventHandler from "../util/event-handler";
 import { randomUUID } from "crypto";
 import { RunSubmitToolOutputsParams } from "openai/resources/beta/threads/runs/runs";
 import Parser from "rss-parser";
+import Constants from "../util/constants";
 
 const chatScene = new Scenes.BaseScene<BotContext>("chatScene");
 export default chatScene;
@@ -352,9 +353,9 @@ async function handlePrompt(ctx: BotContext, text: string) {
 
       try {
         for (const toolCall of toolCalls) {
+          const params = JSON.parse(toolCall.function.arguments);
           switch (toolCall.function.name) {
             case "fetchRssFeed":
-              const params = JSON.parse(toolCall.function.arguments);
               await ctx.replyWithHTML(
                 ctx.t("chat:html.rss.created", { url: params.url })
               );
@@ -379,6 +380,20 @@ async function handlePrompt(ctx: BotContext, text: string) {
               toolOutputs.push({
                 tool_call_id: toolCall.id,
                 output: JSON.stringify(output),
+              });
+              break;
+            case "fetchWeather":
+              await ctx.replyWithHTML(
+                ctx.t("chat:html.weather.created", {
+                  query: params.query,
+                })
+              );
+              const res = await fetch(Constants.getWeather(params.query));
+              const json = await res.json();
+
+              toolOutputs.push({
+                tool_call_id: toolCall.id,
+                output: JSON.stringify(json),
               });
               break;
             default:
@@ -426,8 +441,15 @@ async function handlePrompt(ctx: BotContext, text: string) {
               await ctx.replyWithHTML(ctx.t("chat:html.filesearch.done"));
               break;
             case "function":
-              if (toolCall.function.name === "fetchRssFeed") {
-                await ctx.replyWithHTML(ctx.t("chat:html.rss.done"));
+              switch (toolCall.function.name) {
+                case "fetchRssFeed":
+                  await ctx.replyWithHTML(ctx.t("chat:html.rss.done"));
+                  break;
+                case "fetchWeather":
+                  await ctx.replyWithHTML(ctx.t("chat:html.weather.done"));
+                  break;
+                default:
+                  break;
               }
               break;
           }
