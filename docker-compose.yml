@@ -3,7 +3,7 @@ version: '3.8'
 services:
   bot:
     container_name: assistant_bot
-    image: node:22.4.1
+    image: node:20.7.0
     ports:
       - "8000:8000"
     volumes:
