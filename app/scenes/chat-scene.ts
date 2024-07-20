@@ -388,12 +388,20 @@ async function handlePrompt(ctx: BotContext, text: string) {
                   query: params.query,
                 })
               );
-              const res = await fetch(Constants.getWeather(params.query));
-              const json = await res.json();
+              let weather: string;
+              const apiKey = process.env.WEATHERSTACK_API_KEY;
+              if (!apiKey) {
+                weather =
+                  "Cannot access the weather API for data. Instruct the user to try again later.";
+              } else {
+                const req = Constants.getWeather(apiKey, params.query);
+                const res = await fetch(req);
+                weather = await res.text();
+              }
 
               toolOutputs.push({
                 tool_call_id: toolCall.id,
-                output: JSON.stringify(json),
+                output: weather,
               });
               break;
             default:

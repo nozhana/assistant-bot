@@ -7,9 +7,12 @@ const Constants = {
     return Constants.thumbnailUrl.replace(/{{seed}}/g, encodeURI(seed));
   },
   downloadChubUrl: "https://api.chub.ai/api/characters/download",
-  getWeatherPath: `http://api.weatherstack.com/current?access_key=${process.env.WEATHERSTACK_API_KEY}&query={{query}}`,
-  getWeather: (query: string) =>
-    Constants.getWeatherPath.replace(/{{query}}/g, encodeURI(query)),
+  getWeatherPath:
+    "http://api.weatherstack.com/current?access_key={{apiKey}}&query={{query}}",
+  getWeather: (apiKey: string, query: string) =>
+    Constants.getWeatherPath
+      .replace(/{{apiKey}}/g, apiKey)
+      .replace(/{{query}}/g, encodeURI(query)),
 };
 
 export default Constants;
