@@ -246,6 +246,13 @@ async function handlePrompt(ctx: BotContext, text: string) {
   } = { role: "ASSISTANT" };
 
   const eventHandler = new OpenAIEventHandler(openai)
+    .register("handleError", async (code, message) => {
+      await ctx.replyWithHTML(
+        `🛑 <b>Error:</b>\n<code>${code || "NO CODE"} -- ${escapeHtml(
+          message
+        )}</code>`
+      );
+    })
     .register("textDone", async (content) => {
       try {
         const message = await prisma.message.create({

@@ -18,6 +18,7 @@ interface CompletionEvents {
     toolCalls: RequiredActionFunctionToolCall[]
   ) => Promise<RunSubmitToolOutputsParams.ToolOutput[]>;
   runCompleted?: (runId: string, threadId: string) => Promise<void>;
+  handleError?: (code: string | null, message: string) => Promise<void>;
 }
 
 class OpenAIEventHandler extends EventEmitter {
@@ -84,6 +85,9 @@ class OpenAIEventHandler extends EventEmitter {
         case "thread.run.completed":
           this.handleRunCompleted(event.data.id, event.data.thread_id);
           break;
+        case "error":
+          this.handleError(event.data.code, event.data.message);
+          break;
         default:
           break;
       }
@@ -108,6 +112,11 @@ class OpenAIEventHandler extends EventEmitter {
   private async handleToolCallsDone(toolCalls: ToolCall[]) {
     if (this.handlers.toolCallsDone)
       await this.handlers.toolCallsDone(toolCalls);
+  }
+
+  private async handleError(code: string | null, message: string) {
+    if (this.handlers.handleError)
+      await this.handlers.handleError(code, message);
   }
 
   private async handleRequiresAction(run: Run) {
