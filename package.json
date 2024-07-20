@@ -3,9 +3,10 @@
   "version": "0.0.1",
   "description": "An AI assistant Telegram bot written in Telegraf.js (nozhana@gmail.com)",
   "main": "index.ts",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
-    "start": "tsx index.ts",
+    "prestart": "npx prisma generate && npx tsc",
+    "start": "node index.js",
     "toc": "i18next-resources-for-ts toc -i ./locales/en -o @types/resources.ts",
     "interface": "i18next-resources-for-ts interface -i ./locales/en -o @types/resources.d.ts"
   },
@@ -27,7 +28,6 @@
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^20.14.10",
     "i18next-resources-for-ts": "^1.5.0",
-    "prisma": "^5.16.1",
-    "tsx": "^4.16.2"
+    "prisma": "^5.16.1"
   }
 }
