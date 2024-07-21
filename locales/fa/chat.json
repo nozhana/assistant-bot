@@ -16,6 +16,12 @@
   "html.rss.done": "✅ <i>فید RSS با موفقیت دریافت شد.</i>",
   "html.weather.created": "🌦️ <i>در حال بارگیری اطلاعات آب و هوایی برای</i> <code>{{query}}</code>",
   "html.weather.done": "🌦️ <i>اطلاعات آب و هوایی با موفقیت بارگیری شد.</i>",
+  "html.google.created": "🔎 <i>در حال گوگل کردن:</i>\n<code>{{query}}</code>",
+  "html.google.filter.filetype": "📎 <i>فقط فایل‌های</i> <code>{{fileType}}</code>",
+  "html.google.filter.page": "📖 <i>صفحه‌ی {{page}} نتایج جستجو</i>",
+  "html.google.filter.site.include": "🌐 <i>محدود کردن نتایج جستجو به سایت</i>\n<code>{{site}}</code>",
+  "html.google.filter.site.exclude": "🚫 <i>حذف سایت از نتایج جستجو</i>\n<code>{{site}}</code>",
+  "html.google.done": "🔎 <i>نتایج گوگل دریافت شد.</i>",
   "html.usage": "🗨️ <b>پرسش:</b> <code>{{promptTokens}} توکن</code>\n💬 <b>پاسخ:</b> <code>{{completionTokens}} توکن</code>\n\n💸 <b>هزینه‌ی نهایی:</b> <code>{{totalTokens}} توکن</code>",
   "html.rename": "✨ نام جدید گفتگو:"
 }

@@ -3,7 +3,7 @@ import BotContext from "../middlewares/bot-context";
 import { AssistantTool } from "openai/resources/beta/assistants";
 import InlineKeyboard from "../util/inline-keyboard";
 import initializeUserAndPersonalAssistant from "../handlers/init-user";
-import Constants, { RssTool, WeatherTool } from "../util/constants";
+import Constants, { GoogleTool, RssTool, WeatherTool } from "../util/constants";
 
 const assistantScene = new Scenes.BaseScene<BotContext>("assistantScene");
 
@@ -357,6 +357,44 @@ assistantScene.action(/asst\.([^.]+)\.weather/g, async (ctx) => {
   return assistantDetails(ctx, id);
 });
 
+assistantScene.action(/asst\.([^.]+)\.google/g, async (ctx) => {
+  const id = ctx.match[1];
+  const { openai, prisma } = ctx;
+  const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
+  const remoteAsst = await openai.beta.assistants.retrieve(
+    assistant.serversideId
+  );
+
+  let tools: AssistantTool[];
+  if (assistant.hasGoogle)
+    tools = remoteAsst.tools.filter(
+      (v) =>
+        (v.type === "function" && v.function.name !== "fetchGoogleResults") ||
+        v.type !== "function"
+    );
+  else tools = [...remoteAsst.tools, { ...GoogleTool }];
+
+  try {
+    await openai.beta.assistants.update(assistant.serversideId, { tools });
+    await ctx.answerCbQuery(
+      ctx.t(assistant.hasGoogle ? "asst:cb.google.off" : "asst:cb.google.on", {
+        assistant: assistant.name,
+      }),
+      { show_alert: true }
+    );
+  } catch {
+    await ctx.answerCbQuery(ctx.t("cb.error"), { show_alert: true });
+  }
+
+  await prisma.assistant.update({
+    where: { id },
+    data: { hasGoogle: !assistant.hasGoogle },
+  });
+
+  await ctx.deleteMessage();
+  return assistantDetails(ctx, id);
+});
+
 assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
   const { prisma } = ctx;
   const id = ctx.match[0].split(".").pop();
@@ -408,6 +446,11 @@ async function assistantDetails(ctx: BotContext, id: string) {
     .text(
       (assistant.hasWeather ? "✅ " : "") + ctx.t("asst:btn.weather"),
       `asst.${assistant.id}.weather`,
+      isGuest
+    )
+    .text(
+      (assistant.hasGoogle ? "✅ " : "") + ctx.t("asst:btn.google"),
+      `asst.${assistant.id}.google`,
       isGuest
     )
     .switchToChat(

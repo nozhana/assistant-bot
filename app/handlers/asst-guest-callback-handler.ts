@@ -2,6 +2,7 @@ import { NarrowedContext } from "telegraf";
 import BotContext from "../middlewares/bot-context";
 import { CallbackQuery, Update } from "telegraf/typings/core/types/typegram";
 import escapeHtml from "../util/escape-html";
+import initializeUserAndPersonalAssistant from "./init-user";
 
 const asstGuestCallbackHandler = async (
   ctx: NarrowedContext<BotContext, Update.CallbackQueryUpdate>,
@@ -40,10 +41,18 @@ const asstGuestCallbackHandler = async (
       { show_alert: true }
     );
 
-  await prisma.user.update({
-    where: { id },
-    data: { guestAssistants: { connect: { id: assistantId } } },
-  });
+  try {
+    await prisma.user.update({
+      where: { id },
+      data: { guestAssistants: { connect: { id: assistantId } } },
+    });
+  } catch {
+    await initializeUserAndPersonalAssistant(ctx);
+    await prisma.user.update({
+      where: { id },
+      data: { guestAssistants: { connect: { id: assistantId } } },
+    });
+  }
 
   await ctx.answerCbQuery(
     ctx.t("asst:cb.guest.added", { assistant: assistant.name }),

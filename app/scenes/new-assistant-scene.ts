@@ -115,6 +115,8 @@ newAssistantScene.action("asst.create", async (ctx) => {
     .text(ctx.t("asst:btn.conv.new"), `asst.${assistant.id}.chat`)
     .text(ctx.t("asst:btn.codeinterpreter"), `asst.${assistant.id}.code`)
     .text(ctx.t("asst:btn.rss"), `asst.${assistant.id}.rss`)
+    .text(ctx.t("asst:btn.weather"), `asst.${assistant.id}.weather`)
+    .text(ctx.t("asst:btn.google"), `asst.${assistant.id}.google`)
     .switchToChat(ctx.t("asst:btn.share"), assistant.name)
     .text(ctx.t("btn.delete"), `asst.${assistant.id}.del`)
     .text(ctx.t("asst:btn.back.assts"), "asst.back");

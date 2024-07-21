@@ -397,12 +397,12 @@ async function handlePrompt(ctx: BotContext, text: string) {
                 })
               );
               let weather: string;
-              const apiKey = process.env.WEATHERSTACK_API_KEY;
-              if (!apiKey) {
+              const weatherApiKey = process.env.WEATHERSTACK_API_KEY;
+              if (!weatherApiKey) {
                 weather =
-                  "Cannot access the weather API for data. Instruct the user to try again later.";
+                  "Cannot access the weather API for data. The API key is invalid. Instruct the user to contact the administrator.";
               } else {
-                const req = Constants.getWeather(apiKey, params.query);
+                const req = Constants.getWeather(weatherApiKey, params.query);
                 const res = await fetch(req);
                 weather = await res.text();
               }
@@ -411,6 +411,72 @@ async function handlePrompt(ctx: BotContext, text: string) {
                 tool_call_id: toolCall.id,
                 output: weather,
               });
+              break;
+            case "fetchGoogleResults":
+              let googleResponse: string = ctx.t("chat:html.google.created", {
+                query: params.query,
+              });
+
+              if (params.page)
+                googleResponse +=
+                  "\n\n" +
+                  ctx.t("chat:html.google.filter.page", {
+                    page: String(params.page),
+                  });
+
+              if (params.fileType)
+                googleResponse +=
+                  "\n\n" +
+                  ctx.t("chat:html.google.filter.filetype", {
+                    fileType: params.fileType,
+                  });
+
+              if (params.siteSearch)
+                googleResponse +=
+                  "\n\n" +
+                  (params.siteSearch.siteSearchFilter === "e"
+                    ? ctx.t("chat:html.google.filter.site.exclude", {
+                        site: params.siteSearch.site,
+                      })
+                    : ctx.t("chat:html.google.filter.site.include", {
+                        site: params.siteSearch.site,
+                      }));
+
+              await ctx.replyWithHTML(googleResponse);
+
+              let results: string;
+              const googleApiKey = process.env.GOOGLE_API_KEY;
+              const googleCx = process.env.GOOGLE_CX;
+              if (!googleApiKey || !googleCx) {
+                results =
+                  "Cannot access Google API for search results. The API key is invalid. Instruct the user to contact the administrator.";
+              } else {
+                let req = Constants.fetchGoogle(
+                  googleApiKey,
+                  googleCx,
+                  params.query
+                );
+                if (params.page) req += `&start=${(params.page - 1) * 10 + 1}`;
+                if (params.fileType) req += `&fileType=${params.fileType}`;
+                if (params.siteSearch)
+                  req += `&siteSearch=${
+                    params.siteSearch.site
+                  }&siteSearchFilter=${
+                    params.siteSearch.siteSearchFilter || "i"
+                  }`;
+                const res = await fetch(req);
+                const json = await res.json();
+                const items: {
+                  title: string;
+                  link: string;
+                  displayLink: string;
+                  snippet: string;
+                }[] = json.items;
+                const output = { results: items };
+                results = JSON.stringify(output);
+              }
+
+              toolOutputs.push({ tool_call_id: toolCall.id, output: results });
               break;
             default:
               break;

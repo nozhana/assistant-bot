@@ -52,9 +52,9 @@ adminMenuScene.action(/admin\.users\.\d+/g, async (ctx) => {
   });
 });
 
-adminMenuScene.action(/admin\.user\.\d+$/g, async (ctx) => {
+adminMenuScene.action(/admin\.user\.(\d+)$/g, async (ctx) => {
   const { prisma } = ctx;
-  const userId = Number(ctx.match[0].split(".").pop());
+  const userId = Number(ctx.match[1]);
 
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
@@ -80,9 +80,9 @@ adminMenuScene.action(/admin\.user\.\d+$/g, async (ctx) => {
   );
 });
 
-adminMenuScene.action(/admin\.user\.\d+\.del/g, async (ctx) => {
+adminMenuScene.action(/admin\.user\.(\d+)\.del/g, async (ctx) => {
   const { openai, prisma } = ctx;
-  const userId = Number(ctx.match[0].split(".")[2]);
+  const userId = Number(ctx.match[1]);
 
   await prisma.user.update({
     where: { id: userId },

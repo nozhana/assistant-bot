@@ -16,6 +16,12 @@
   "html.rss.done": "✅ <i>RSS-Daten erfolgreich abgerufen.</i>",
   "html.weather.created": "🌦️ <i>Wetterdaten abrufen:</i> <code>{{query}}</code>",
   "html.weather.done": "🌦️ <i>Wetterdaten erfolgreich abgerufen.</i>",
+  "html.google.created": "🔎 <i>Googlen:</i>\n<code>{{query}}</code>",
+  "html.google.filter.filetype": "📎 <i>Nur</i> <code>{{fileType}}</code> <i>Dateien</i>",
+  "html.google.filter.page": "📖 <i>Seite {{page}} der Ergebnisse</i>",
+  "html.google.filter.site.include": "🌐 <i>Nur Ergebnisse von</i>\n<code>{{site}}</code>",
+  "html.google.filter.site.exclude": "🚫 <i>Ohne Ergebnisse von</i>\n<code>{{site}}</code>",
+  "html.google.done": "🔎 <i>Google-Ergebnisse abgerufen.</i>",
   "html.usage": "🗨️ <b>Eingabe:</b> <code>{{promptTokens}} Token</code>\n💬 <b>Ausgabe:</b> <code>{{completionTokens}} Token</code>\n\n💸 <b>Gesamt:</b> <code>{{totalTokens}} Token</code>",
   "html.rename": "✨ Gespräch umbenannt:"
 }
