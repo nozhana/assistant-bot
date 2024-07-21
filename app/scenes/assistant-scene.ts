@@ -20,13 +20,21 @@ const listAssistants = async (ctx: BotContext, page: number = 1) => {
     skip: (page - 1) * 10,
     take: 10,
     where: {
-      OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
+      OR: [
+        { userId: ctx.from.id },
+        { guestIds: { has: ctx.from.id } },
+        { public: true },
+      ],
     },
   });
 
   const assistantsCount = await prisma.assistant.count({
     where: {
-      OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
+      OR: [
+        { userId: ctx.from.id },
+        { guestIds: { has: ctx.from.id } },
+        { public: true },
+      ],
     },
   });
 
@@ -78,13 +86,13 @@ assistantScene.action("asst.import", async (ctx) => {
   return ctx.scene.enter("importAssistantScene");
 });
 
-assistantScene.action(/asst\.list\.\d+/g, async (ctx) => {
-  const page = Number(ctx.match[0].split(".").pop());
+assistantScene.action(/asst\.list\.(\d+)/g, async (ctx) => {
+  const page = Number(ctx.match[1]);
   return listAssistants(ctx, page);
 });
 
-assistantScene.action(/asst\.[^.]+\.del/g, async (ctx) => {
-  const id = ctx.match[0].split(".")[1];
+assistantScene.action(/asst\.([^.]+)\.del/g, async (ctx) => {
+  const id = ctx.match[1];
   const { prisma, openai } = ctx;
   const isGuest = await prisma.user.count({
     where: {
@@ -181,38 +189,118 @@ assistantScene.action(/asst\.([^.]+)\.chat/g, async (ctx) => {
 
 assistantScene.action(/asst\.([^.]+)\.name/g, async (ctx) => {
   const id = ctx.match[1];
+  const { prisma } = ctx;
   ctx.scene.state = { id, edit: "name" };
+
+  const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
 
   const keyboard = new InlineKeyboard().text(ctx.t("btn.back"), `asst.${id}`);
 
   await ctx.answerCbQuery(ctx.t("asst:cb.name"));
   await ctx.editMessageReplyMarkup(undefined);
-  return ctx.replyWithHTML(ctx.t("asst:html.asst.new.name"), {
-    reply_markup: keyboard,
-  });
+  return ctx.replyWithHTML(
+    ctx.t("asst:html.asst.new.name", { name: assistant.name }),
+    {
+      reply_markup: keyboard,
+    }
+  );
 });
 
 assistantScene.action(/asst\.([^.]+)\.inst/g, async (ctx) => {
   const id = ctx.match[1];
+  const { prisma } = ctx;
   ctx.scene.state = { id, edit: "instructions" };
+
+  const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
 
   const keyboard = new InlineKeyboard().text(ctx.t("btn.back"), `asst.${id}`);
 
   await ctx.answerCbQuery(ctx.t("asst:cb.inst"));
   await ctx.editMessageReplyMarkup(undefined);
-  return ctx.replyWithHTML(ctx.t("asst:html.asst.new.inst"), {
-    reply_markup: keyboard,
+  return ctx.replyWithHTML(
+    ctx.t("asst:html.asst.new.inst", { instructions: assistant.instructions }),
+    {
+      reply_markup: keyboard,
+    }
+  );
+});
+
+assistantScene.action(/asst\.([^.]+)\.greeting\.del$/g, async (ctx) => {
+  const id = ctx.match[1];
+  const { prisma } = ctx;
+  ctx.scene.state = {};
+
+  const assistant = await prisma.assistant.update({
+    where: { id },
+    data: { greeting: null },
   });
+
+  await ctx.answerCbQuery(
+    ctx.t("asst:cb.greeting.del", { assistant: assistant.name }),
+    { show_alert: true }
+  );
+  await ctx.editMessageReplyMarkup(undefined);
+  return assistantDetails(ctx, id);
+});
+
+assistantScene.action(/asst\.([^.]+)\.greeting$/g, async (ctx) => {
+  const id = ctx.match[1];
+  const { prisma } = ctx;
+  ctx.scene.state = { id, edit: "greeting" };
+
+  const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
+
+  const keyboard = new InlineKeyboard().row(
+    InlineKeyboard.text(ctx.t("btn.back"), `asst.${id}.reset`),
+    InlineKeyboard.text(
+      ctx.t("asst:btn.no.greeting"),
+      `asst.${id}.greeting.del`,
+      !assistant.greeting
+    )
+  );
+
+  await ctx.answerCbQuery(ctx.t("asst:cb.greeting"));
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.replyWithHTML(
+    ctx.t("asst:html.asst.new.greeting", { greeting: assistant.greeting }),
+    {
+      reply_markup: keyboard,
+    }
+  );
+});
+
+assistantScene.action(/^asst\.([^.]+)\.reset$/g, async (ctx) => {
+  const id = ctx.match[1];
+  ctx.scene.state = {};
+  return assistantDetails(ctx, id);
 });
 
 assistantScene.hears(/^[^\/].*/g, async (ctx, next) => {
   const { openai, prisma } = ctx;
   const { id, edit } = ctx.scene.state as {
     id?: string;
-    edit?: "name" | "instructions";
+    edit?: "name" | "instructions" | "greeting";
   };
 
   if (!id || !edit) return next();
+
+  if (edit === "greeting") {
+    if (ctx.text.length > 512)
+      return ctx.replyWithHTML(ctx.t("asst:html.asst.new.greeting.toolong"));
+
+    ctx.scene.state = {};
+    await prisma.assistant.update({
+      where: { id },
+      data: { greeting: ctx.text },
+    });
+    return assistantDetails(ctx, id);
+  }
+
+  if (edit === "name" && ctx.text.length > 64)
+    return ctx.replyWithHTML(ctx.t("asst:html.asst.new.name.toolong"));
+
+  if (edit === "instructions" && ctx.text.length > 3072)
+    return ctx.replyWithHTML(ctx.t("asst:html.asst.new.inst.toolong"));
 
   ctx.scene.state = {};
 
@@ -395,9 +483,112 @@ assistantScene.action(/asst\.([^.]+)\.google/g, async (ctx) => {
   return assistantDetails(ctx, id);
 });
 
-assistantScene.action(/asst\.[^.]+$/g, async (ctx) => {
+assistantScene.action(/asst\.([^.]+)\.public\.(off|on)/g, async (ctx) => {
   const { prisma } = ctx;
-  const id = ctx.match[0].split(".").pop();
+  const id = ctx.match[1];
+  const isOn = ctx.match[2] === "on";
+  const assistant = await prisma.assistant.update({
+    where: { id },
+    data: { public: isOn },
+  });
+  await ctx.answerCbQuery(
+    ctx.t(isOn ? "asst:cb.public.on" : "asst:cb.public.off", {
+      assistant: assistant.name,
+    }),
+    { show_alert: true }
+  );
+  await ctx.deleteMessage();
+  return assistantDetails(ctx, id);
+});
+
+assistantScene.action(/asst\.([^.]+)\.revoke$/g, async (ctx) => {
+  const { prisma } = ctx;
+  const id = ctx.match[1];
+  const assistant = await prisma.assistant.findUniqueOrThrow({
+    where: { id },
+    include: { guests: true },
+  });
+
+  const keyboard = new InlineKeyboard()
+    .rows(
+      ...assistant.guests.map((guest) => [
+        InlineKeyboard.text(guest.firstName, `asst.${id}.revoke.${guest.id}`),
+      ])
+    )
+    .row(
+      InlineKeyboard.text(ctx.t("btn.back"), `asst.${id}`),
+      InlineKeyboard.text(
+        ctx.t("asst:btn.revoke.all"),
+        `asst.${id}.revoke.all`,
+        !assistant.guests.length
+      )
+    );
+
+  await ctx.answerCbQuery(ctx.t("asst:cb.revoke"));
+  await ctx.editMessageReplyMarkup(undefined);
+  await ctx.replyWithHTML(
+    ctx.t("asst:html.revoke", { assistant: assistant.name }),
+    { reply_markup: keyboard }
+  );
+});
+
+assistantScene.action(/asst\.([^.]+)\.revoke\.(\d+)$/g, async (ctx) => {
+  const { prisma } = ctx;
+  const id = ctx.match[1];
+  const userId = Number(ctx.match[2]);
+
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  const assistant = await prisma.assistant.update({
+    where: { id },
+    data: { guests: { disconnect: { id: userId } } },
+    include: { guests: true },
+  });
+
+  const keyboard = new InlineKeyboard()
+    .rows(
+      ...assistant.guests.map((guest) => [
+        InlineKeyboard.text(guest.firstName, `asst.${id}.revoke.${guest.id}`),
+      ])
+    )
+    .row(
+      InlineKeyboard.text(ctx.t("btn.back"), `asst.${id}`),
+      InlineKeyboard.text(
+        ctx.t("asst:btn.revoke.all"),
+        `asst.${id}.revoke.all`,
+        !assistant.guests.length
+      )
+    );
+
+  await ctx.answerCbQuery(
+    ctx.t("asst:cb.revoke.user", { user: user.firstName }),
+    {
+      show_alert: true,
+    }
+  );
+  return ctx.editMessageReplyMarkup(keyboard);
+});
+
+assistantScene.action(/asst\.([^.]+)\.revoke.all$/g, async (ctx) => {
+  const { prisma } = ctx;
+  const id = ctx.match[1];
+
+  const assistant = await prisma.assistant.update({
+    where: { id },
+    data: { guests: { set: [] } },
+  });
+
+  await ctx.answerCbQuery(
+    ctx.t("asst:cb.revoke.all", { assistant: assistant.name }),
+    { show_alert: true }
+  );
+  await ctx.deleteMessage();
+
+  return assistantDetails(ctx, id);
+});
+
+assistantScene.action(/asst\.([^.]+)$/g, async (ctx) => {
+  const { prisma } = ctx;
+  const id = ctx.match[1];
   if (!id) return ctx.scene.reenter();
 
   const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
@@ -414,7 +605,11 @@ async function assistantDetails(ctx: BotContext, id: string) {
     where: { id },
   });
 
+  const isCreator = assistant.userId === ctx.from?.id;
   const isGuest = assistant.guestIds.includes(ctx.from?.id ?? 0);
+  const isAdmin = (
+    process.env.BOT_ADMINS?.split(",").map(Number) ?? []
+  ).includes(ctx.from!.id);
 
   const isPersonalAssistant =
     assistant.name.toLowerCase() === "personal assistant";
@@ -424,53 +619,85 @@ async function assistantDetails(ctx: BotContext, id: string) {
       InlineKeyboard.text(
         ctx.t("asst:btn.name"),
         `asst.${assistant.id}.name`,
-        isGuest || isPersonalAssistant
+        isGuest || isPersonalAssistant || (assistant.public && !isCreator)
       ),
       InlineKeyboard.text(
         ctx.t("asst:btn.inst"),
         `asst.${assistant.id}.inst`,
-        isGuest || isPersonalAssistant
+        isGuest || isPersonalAssistant || (assistant.public && !isCreator)
       )
+    )
+    .text(
+      ctx.t("asst:btn.greeting"),
+      `asst.${assistant.id}.greeting`,
+      isGuest || isPersonalAssistant || (assistant.public && !isCreator)
     )
     .text(ctx.t("asst:btn.conv.new"), `asst.${assistant.id}.chat`)
     .text(
       (assistant.hasCode ? "✅ " : "") + ctx.t("asst:btn.codeinterpreter"),
       `asst.${assistant.id}.code`,
-      isGuest
+      isGuest || (assistant.public && !isCreator)
     )
     .text(
       (assistant.hasRss ? "✅ " : "") + ctx.t("asst:btn.rss"),
       `asst.${assistant.id}.rss`,
-      isGuest
+      isGuest || (assistant.public && !isCreator)
     )
     .text(
       (assistant.hasWeather ? "✅ " : "") + ctx.t("asst:btn.weather"),
       `asst.${assistant.id}.weather`,
-      isGuest
+      isGuest || (assistant.public && !isCreator)
     )
     .text(
       (assistant.hasGoogle ? "✅ " : "") + ctx.t("asst:btn.google"),
       `asst.${assistant.id}.google`,
-      isGuest
+      isGuest || (assistant.public && !isCreator)
+    )
+    .text(
+      assistant.public
+        ? ctx.t("asst:btn.public.off")
+        : ctx.t("asst:btn.public.on"),
+      `asst.${assistant.id}.public.` + (assistant.public ? "off" : "on"),
+      isGuest || isPersonalAssistant || !isAdmin || !isCreator
     )
     .switchToChat(
       ctx.t("asst:btn.share"),
       assistant.name,
-      isGuest || isPersonalAssistant
+      isGuest || isPersonalAssistant || assistant.public
     )
-    .text(ctx.t("btn.delete"), `asst.${assistant.id}.del`, isPersonalAssistant)
+    .text(
+      ctx.t("asst:btn.revoke"),
+      `asst.${assistant.id}.revoke`,
+      !isCreator || !assistant.guestIds.length
+    )
+    .text(
+      ctx.t("btn.delete"),
+      `asst.${assistant.id}.del`,
+      isPersonalAssistant || (assistant.public && !isCreator)
+    )
     .text(ctx.t("asst:btn.back.assts"), "asst.back");
 
   let response: string = ctx.t("asst:html.asst", {
     assistant: assistant.name,
-    instructions: assistant.instructions
-      ?.replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
-      .replace(/{user}/gi, ctx.from?.first_name ?? "User")
-      .replace(/{{char}}/gi, assistant.name)
-      .replace(/{char}/gi, assistant.name),
+    instructions:
+      (assistant.instructions || "").length > 3072
+        ? ctx.t("asst:html.inst.toolong")
+        : assistant.instructions
+            ?.replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
+            .replace(/{user}/gi, ctx.from?.first_name ?? "User")
+            .replace(/{{char}}/gi, assistant.name)
+            .replace(/{char}/gi, assistant.name),
+    greeting:
+      (assistant.greeting || "").length > 512
+        ? ctx.t("asst:html.greeting.toolong")
+        : assistant.greeting
+            ?.replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
+            .replace(/{user}/gi, ctx.from?.first_name ?? "User")
+            .replace(/{{char}}/gi, assistant.name)
+            .replace(/{char}/gi, assistant.name),
   });
 
-  if (!isPersonalAssistant && !isGuest && assistant.guestIds.length)
+  if (isCreator && assistant.guestIds.length)
     response +=
       "\n\n" +
       ctx.t("asst:html.asst.shared", { count: assistant.guestIds.length });
@@ -486,28 +713,31 @@ async function assistantDetails(ctx: BotContext, id: string) {
     );
   } catch (error) {
     try {
-      await ctx.replyWithPhoto(
-        assistant.image ?? Constants.thumbnail(assistant.name),
-        { caption: `🖼️ <b>${assistant.name}</b>`, parse_mode: "HTML" }
-      );
+      await ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
+        caption: response,
+        parse_mode: "HTML",
+      });
     } catch {
       await ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
         caption: `🖼️ <b>${assistant.name}</b>`,
         parse_mode: "HTML",
       });
-    }
-    try {
-      await ctx.replyWithHTML(response, { reply_markup: keyboard });
-    } catch {
-      response = ctx.t("asst:html.asst", {
-        assistant: assistant.name,
-        instructions: ctx.t("asst:html.inst.toolong"),
-      });
-      if (!isPersonalAssistant && !isGuest && assistant.guestIds.length)
-        response +=
-          "\n\n" +
-          ctx.t("asst:html.asst.shared", { count: assistant.guestIds.length });
-      await ctx.replyWithHTML(response, { reply_markup: keyboard });
+      try {
+        await ctx.replyWithHTML(response, { reply_markup: keyboard });
+      } catch {
+        response = ctx.t("asst:html.asst", {
+          assistant: assistant.name,
+          instructions: ctx.t("asst:html.inst.toolong"),
+          greeting: ctx.t("asst:html.greeting.toolong"),
+        });
+        if (isCreator && assistant.guestIds.length)
+          response +=
+            "\n\n" +
+            ctx.t("asst:html.asst.shared", {
+              count: assistant.guestIds.length,
+            });
+        await ctx.replyWithHTML(response, { reply_markup: keyboard });
+      }
     }
   }
 }

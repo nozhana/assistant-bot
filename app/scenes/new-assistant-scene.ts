@@ -107,42 +107,65 @@ newAssistantScene.action("asst.create", async (ctx) => {
   await ctx.deleteMessage(waitMessage.message_id);
   await ctx.scene.enter("assistantScene", undefined, true);
 
+  const isAdmin = (
+    process.env.BOT_ADMINS?.split(",").map(Number) ?? []
+  ).includes(ctx.from.id);
+
   const keyboard = new InlineKeyboard()
     .row(
       InlineKeyboard.text(ctx.t("asst:btn.name"), `asst.${assistant.id}.name`),
       InlineKeyboard.text(ctx.t("asst:btn.inst"), `asst.${assistant.id}.inst`)
     )
+    .text(ctx.t("asst:btn.greeting"), `asst.${assistant.id}.greeting`)
     .text(ctx.t("asst:btn.conv.new"), `asst.${assistant.id}.chat`)
     .text(ctx.t("asst:btn.codeinterpreter"), `asst.${assistant.id}.code`)
     .text(ctx.t("asst:btn.rss"), `asst.${assistant.id}.rss`)
     .text(ctx.t("asst:btn.weather"), `asst.${assistant.id}.weather`)
     .text(ctx.t("asst:btn.google"), `asst.${assistant.id}.google`)
+    .text(
+      ctx.t("asst:btn.public.on"),
+      `asst.${assistant.id}.public.on`,
+      !isAdmin
+    )
     .switchToChat(ctx.t("asst:btn.share"), assistant.name)
     .text(ctx.t("btn.delete"), `asst.${assistant.id}.del`)
     .text(ctx.t("asst:btn.back.assts"), "asst.back");
+
+  const response: string = ctx.t("asst:html.asst", {
+    assistant: assistant.name,
+    instructions:
+      (assistant.instructions || "").length > 3072
+        ? ctx.t("asst:html.inst.toolong")
+        : assistant.instructions
+            ?.replace(/{{user}}/gi, ctx.from.first_name)
+            .replace(/{user}/gi, ctx.from.first_name)
+            .replace(/{{char}}/gi, assistant.name)
+            .replace(/{char}/gi, assistant.name),
+    greeting:
+      (assistant.greeting || "").length > 512
+        ? ctx.t("asst:html.greeting.toolong")
+        : assistant.greeting
+            ?.replace(/{{user}}/gi, ctx.from.first_name)
+            .replace(/{user}/gi, ctx.from.first_name)
+            .replace(/{{char}}/gi, assistant.name)
+            .replace(/{char}/gi, assistant.name),
+  });
 
   try {
     await ctx.replyWithPhoto(
       assistant.image ?? Constants.thumbnail(assistant.name),
       {
-        caption: ctx.t("asst:html.asst", {
-          assistant: assistant.name,
-          instructions: assistant.instructions
-            ?.replace(/{{user}}/gi, ctx.from.first_name)
-            .replace(/{user}/gi, ctx.from.first_name)
-            .replace(/{{char}}/gi, assistant.name)
-            .replace(/{char}/gi, assistant.name),
-        }),
+        caption: response,
         parse_mode: "HTML",
         reply_markup: keyboard,
       }
     );
-  } catch (error) {
+  } catch {
     try {
-      await ctx.replyWithPhoto(
-        assistant.image ?? Constants.thumbnail(assistant.name),
-        { caption: `🖼️ <b>${assistant.name}</b>`, parse_mode: "HTML" }
-      );
+      await ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
+        caption: response,
+        parse_mode: "HTML",
+      });
     } catch {
       await ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
         caption: `🖼️ <b>${assistant.name}</b>`,
@@ -150,22 +173,13 @@ newAssistantScene.action("asst.create", async (ctx) => {
       });
     }
     try {
-      await ctx.replyWithHTML(
-        ctx.t("asst:html.asst", {
-          assistant: assistant.name,
-          instructions: assistant.instructions
-            ?.replace(/{{user}}/gi, ctx.from.first_name ?? "User")
-            .replace(/{user}/gi, ctx.from.first_name ?? "User")
-            .replace(/{{char}}/gi, assistant.name)
-            .replace(/{char}/gi, assistant.name),
-        }),
-        { reply_markup: keyboard }
-      );
+      await ctx.replyWithHTML(response, { reply_markup: keyboard });
     } catch {
       await ctx.replyWithHTML(
         ctx.t("asst:html.asst", {
           assistant: assistant.name,
           instructions: ctx.t("asst:html.inst.toolong"),
+          greeting: ctx.t("asst:html.greeting.toolong"),
         }),
         { reply_markup: keyboard }
       );

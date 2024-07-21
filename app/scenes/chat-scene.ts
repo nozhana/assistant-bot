@@ -43,38 +43,25 @@ chatScene.enter(async (ctx) => {
   );
 
   if (conversation.assistant.greeting && !conversation.messages.length) {
-    await prisma.conversation.update({
-      where: { id: conversation.id },
+    const message = await prisma.message.create({
       data: {
-        messages: {
-          create: {
-            role: "ASSISTANT",
-            content: conversation.assistant.greeting
-              .replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
-              .replace(/{user}/gi, ctx.from?.first_name ?? "User"),
-            userId: ctx.from!.id,
-            assistantId: conversation.assistant.id,
-            tokens: 0,
-          },
-        },
+        content: conversation.assistant.greeting
+          .replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
+          .replace(/{user}/gi, ctx.from?.first_name ?? "User")
+          .replace(/{{char}}/gi, conversation.assistant.name)
+          .replace(/{char}/gi, conversation.assistant.name),
+        role: "ASSISTANT",
+        user: { connect: { id: ctx.from!.id } },
+        assistant: { connect: { id: conversation.assistant.id } },
+        conversation: { connect: { id: conversation.id } },
+        tokens: 0,
       },
     });
+
     try {
-      await ctx.replyWithMarkdown(
-        conversation.assistant.greeting
-          .replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
-          .replace(/{user}/gi, ctx.from?.first_name ?? "User")
-          .replace(/{{char}}/gi, conversation.assistant.name)
-          .replace(/{char}/gi, conversation.assistant.name)
-      );
+      await ctx.replyWithMarkdown(message.content);
     } catch {
-      await ctx.reply(
-        conversation.assistant.greeting
-          .replace(/{{user}}/gi, ctx.from?.first_name ?? "User")
-          .replace(/{user}/gi, ctx.from?.first_name ?? "User")
-          .replace(/{{char}}/gi, conversation.assistant.name)
-          .replace(/{char}/gi, conversation.assistant.name)
-      );
+      await ctx.reply(message.content);
     }
   }
 
@@ -260,9 +247,9 @@ async function handlePrompt(ctx: BotContext, text: string) {
             role: "ASSISTANT",
             content: content.value,
             tokens: stream.currentRun()?.usage?.completion_tokens ?? 0,
-            userId: conversation.userId,
-            assistantId: conversation.assistantId,
-            conversationId: conversation.id,
+            user: { connect: { id: conversation.userId } },
+            conversation: { connect: { id: conversation.id } },
+            assistant: { connect: { id: conversation.assistantId } },
           },
         });
         responseMessage = message;

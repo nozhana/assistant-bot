@@ -21,7 +21,7 @@
   "btn.google": "🔎 Google",
   "btn.share": "↗️ Assistent teilen",
   "btn.back.assts": "👈 Assistenten",
-  "html.asst": "🤖 <b>Name:</b> <code>{{assistant}}</code>\n\n☝️ <b>Anweisungen:</b>\n<pre>{{instructions}}</pre>",
+  "html.asst": "🤖 <b>Name:</b> <code>{{assistant}}</code>\n\n☝️ <b>Anweisungen:</b>\n<pre>{{instructions}}</pre>\n\n💬 <b>Begrüßungstext:</b>\n<pre>{{greeting}}</pre>",
   "html.inst.toolong": "Die Anweisung ist zu lang zum Ausdrucken.",
   "html.asst.shared_one": "↗️ <b>Mit {{count}} Person geteilt.</b>",
   "html.asst.shared_other": "↗️ <b>Mit {{count}} Personen geteilt.</b>",

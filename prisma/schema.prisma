@@ -36,6 +36,7 @@ model Assistant {
   hasRss        Boolean        @default(false) @db.Bool
   hasWeather    Boolean        @default(false) @db.Bool
   hasGoogle     Boolean        @default(false) @db.Bool
+  public        Boolean        @default(false) @db.Bool
   userId        Int
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   guestIds      Int[]
