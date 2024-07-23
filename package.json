@@ -13,6 +13,7 @@
   "author": "Nozhan Amiri (nozhana@gmail.com)",
   "license": "ISC",
   "dependencies": {
+    "@foile/crypto-pay-api": "^1.0.4",
     "@prisma/client": "^5.16.1",
     "@telegraf/session": "^2.0.0-beta.7",
     "@types/i18next": "^13.0.0",
