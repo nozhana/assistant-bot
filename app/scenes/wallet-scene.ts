@@ -52,3 +52,5 @@ walletScene.action("wallet.topup", async (ctx) => {
     reply_markup: keyboard,
   });
 });
+
+export default walletScene;

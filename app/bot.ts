@@ -17,6 +17,7 @@ import asstGuestCallbackHandler from "./handlers/asst-guest-callback-handler";
 import i18nMiddleware from "./middlewares/i18n-middleware";
 import importAssistantScene from "./scenes/import-assistant-scene";
 import fileScene from "./scenes/file-scene";
+import walletScene from "./scenes/wallet-scene";
 
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 const store = SQLite<SessionData>({
@@ -50,6 +51,7 @@ const stage = new Scenes.Stage([
   newAssistantScene,
   importAssistantScene,
   fileScene,
+  walletScene,
 ]);
 bot.use(stage.middleware());
 
@@ -58,6 +60,7 @@ bot.help(helpHandler);
 bot.settings((ctx) => ctx.scene.enter("settingsScene"));
 bot.command("chat", (ctx) => ctx.scene.enter("convScene"));
 bot.command("assistants", (ctx) => ctx.scene.enter("assistantScene"));
+bot.command("wallet", (ctx) => ctx.scene.enter("walletScene"));
 bot.on("inline_query", asstInlineHandler);
 bot.action(/guest\.([^.]+)/g, asstGuestCallbackHandler);
 

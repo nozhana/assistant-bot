@@ -19,6 +19,7 @@ bot
         { command: "chat", description: "💬 Talk to an assistant" },
         { command: "assistants", description: "🤖 Manage assistants" },
         { command: "settings", description: "⚙️ Settings" },
+        { command: "wallet", description: "🐷 Wallet" },
       ]);
     }
   )
