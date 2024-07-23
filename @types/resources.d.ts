@@ -176,6 +176,17 @@ interface Resources {
     "cb.voice.changed": "🗣️ Voice set to {{voice}}",
     "html.lang.change": "🌐 <b>Change bot language</b>",
     "cb.lang.change": "🌐 Change language"
+  },
+  "wallet": {
+    "lit.token.count_zero": "no tokens",
+    "lit.token.count_one": "{{count}} token",
+    "lit.token.count_other": "{{count}} tokens",
+    "html.wallet_one": "🐷 <b>Wallet</b>\n\n👋 Hello, {{user}}.\n<b>Token balance:</b> <code>{{balance}}</code> token",
+    "html.wallet_other": "🐷 <b>Wallet</b>\n\n👋 Hello, {{user}}.\n<b>Token balance:</b> <code>{{count}}</code> tokens",
+    "cb.wallet": "🐷 Wallet",
+    "btn.topup": "💳 Top up",
+    "btn.gift": "🎁 Gift",
+    "html.gift": "🎁 Buy tokens for your friends."
   }
 }
 
