@@ -48,8 +48,10 @@ walletScene.action("wallet.topup", async (ctx) => {
       InlineKeyboard.text(ctx.t("wallet:btn.gift"), "wallet.gift")
     );
 
-  return ctx.replyWithHTML(ctx.t("wallet:html.topup"), {
+  await ctx.answerCbQuery(ctx.t("wallet:cb.topup"));
+  return ctx.editMessageText(ctx.t("wallet:html.topup"), {
     reply_markup: keyboard,
+    parse_mode: "HTML",
   });
 });
 
