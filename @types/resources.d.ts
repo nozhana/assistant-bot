@@ -128,7 +128,7 @@ interface Resources {
     "lang.feedback": "Language changed to 🇬🇧 English.",
     "coming.soon": "👟 Coming soon",
     "html.wait": "<i>Please wait...</i>",
-    "html.help": "💁 <b>Help</b>\n\n/start | /help — ℹ️ Show this message\n/chat — 💬 Talk to an assistant\n/assistants — 🤖 Manage assistants\n/settings — ⚙️ Settings menu",
+    "html.help": "💁 <b>Help</b>\n\n/start | /help — ℹ️ Show this message\n/chat — 💬 Talk to an assistant\n/assistants — 🤖 Manage assistants\n/settings — ⚙️ Settings menu\n/wallet - 🐷 Wallet",
     "cb.error": "❌ There was an error handling your request. Please try again."
   },
   "conv": {
@@ -186,7 +186,7 @@ interface Resources {
     "cb.wallet": "🐷 Wallet",
     "btn.topup": "💳 Top up",
     "btn.gift": "🎁 Gift",
-    "html.gift": "🎁 Buy tokens for your friends."
+    "html.topup": "💳 <b>Top up your balance.</b>\n\n👇 <i>Choose one of the plans offered below.\nYou'll be redirected to a crypto payment gateway to complete your order.</i>"
   }
 }
 

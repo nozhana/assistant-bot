@@ -48,7 +48,7 @@ walletScene.action("wallet.topup", async (ctx) => {
       InlineKeyboard.text(ctx.t("wallet:btn.gift"), "wallet.gift")
     );
 
-  return ctx.replyWithHTML(ctx.t("wallet:html.gift"), {
+  return ctx.replyWithHTML(ctx.t("wallet:html.topup"), {
     reply_markup: keyboard,
   });
 });
