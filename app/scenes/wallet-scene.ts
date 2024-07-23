@@ -16,15 +16,23 @@ walletScene.enter(async (ctx) => {
     "wallet.topup"
   );
 
-  return ctx.replyWithHTML(
-    ctx.t("wallet:html.wallet", { user: user.firstName, count: user.balance }),
-    { reply_markup: keyboard }
-  );
+  const response = ctx.t("wallet:html.wallet", {
+    user: user.firstName,
+    count: user.balance,
+  });
+
+  try {
+    await ctx.answerCbQuery(ctx.t("wallet:cb.wallet"));
+    return ctx.editMessageText(response, {
+      reply_markup: keyboard,
+      parse_mode: "HTML",
+    });
+  } catch {
+    return ctx.replyWithHTML(response, { reply_markup: keyboard });
+  }
 });
 
 walletScene.action("wallet.back", async (ctx) => {
-  await ctx.answerCbQuery(ctx.t("wallet:cb.wallet"));
-  await ctx.deleteMessage();
   return ctx.scene.reenter();
 });
 
