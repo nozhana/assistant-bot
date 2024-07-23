@@ -5,7 +5,7 @@
   "main": "index.ts",
   "type": "commonjs",
   "scripts": {
-    "prestart": "npx prisma generate && npx tsc",
+    "postinstall": "npx prisma generate && npx tsc",
     "start": "node index.js",
     "toc": "i18next-resources-for-ts toc -i ./locales/en -o @types/resources.ts",
     "interface": "i18next-resources-for-ts interface -i ./locales/en -o @types/resources.d.ts"

@@ -59,24 +59,32 @@ convScene.action(/conv\.asst\.[^.]+/g, async (ctx) => {
   return enterConversation(ctx, newConversation.id);
 });
 
-convScene.action(/conv\.[^.]+\.cont/g, async (ctx) => {
-  const conversationId = ctx.match[0].split(".")[1];
+convScene.action(/conv\.([^.]+)\.cont/g, async (ctx) => {
+  const conversationId = ctx.match[1];
   return enterConversation(ctx, conversationId);
 });
 
-convScene.action(/conv\.[^.]+\.del/g, async (ctx) => {
-  const conversationId = ctx.match[0].split(".")[1];
+convScene.action(/conv\.([^.]+)\.del/g, async (ctx) => {
+  const conversationId = ctx.match[1];
   return deleteConversation(ctx, conversationId);
 });
 
-convScene.action(/conv\.[^.]+\.hist/g, async (ctx) => {
-  const conversationId = ctx.match[0].split(".")[1];
+convScene.action(/conv\.([^.]+)\.hist/g, async (ctx) => {
+  const conversationId = ctx.match[1];
   return conversationHistory(ctx, conversationId);
 });
 
-convScene.action(/conv\.[^.]+$/g, async (ctx) => {
+convScene.action("conv.del.all", async (ctx) => {
   const { prisma } = ctx;
-  const conversationId = ctx.match[0].split(".").pop()!;
+  await prisma.conversation.deleteMany({ where: { userId: ctx.from.id } });
+  await ctx.answerCbQuery(ctx.t("conv:cb.del.all"), { show_alert: true });
+  await ctx.deleteMessage();
+  return listConversations(ctx);
+});
+
+convScene.action(/conv\.([^.]+)$/g, async (ctx) => {
+  const { prisma } = ctx;
+  const conversationId = ctx.match[1];
   const exists = await prisma.conversation.count({
     where: { id: conversationId },
   });
@@ -121,7 +129,8 @@ async function listConversations(ctx: BotContext, page: number = 1) {
         `conv.list.${page + 1}`,
         page >= pages
       )
-    );
+    )
+    .text(ctx.t("conv:btn.del.all"), "conv.del.all", !convsCount);
 
   const response = convsCount
     ? ctx.t("conv:html.convs", { page, pages })
@@ -142,12 +151,20 @@ async function chooseAssistant(
 
   const assistants = await prisma.assistant.findMany({
     where: {
-      OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
+      OR: [
+        { userId: ctx.from.id },
+        { guestIds: { has: ctx.from.id } },
+        { public: true },
+      ],
     },
   });
   const assistantsCount = await prisma.assistant.count({
     where: {
-      OR: [{ userId: ctx.from.id }, { guestIds: { has: ctx.from.id } }],
+      OR: [
+        { userId: ctx.from.id },
+        { guestIds: { has: ctx.from.id } },
+        { public: true },
+      ],
     },
   });
   const pages = Math.ceil(assistantsCount / 10);
@@ -190,7 +207,7 @@ async function deleteConversation(ctx: BotContext, conversationId: string) {
   const { prisma } = ctx;
   await prisma.message.deleteMany({ where: { conversationId } });
   await prisma.conversation.delete({ where: { id: conversationId } });
-  await ctx.answerCbQuery(ctx.t("conv:cb.deleted"));
+  await ctx.answerCbQuery(ctx.t("conv:cb.deleted"), { show_alert: true });
   await ctx.editMessageReplyMarkup(undefined);
   return ctx.scene.reenter();
 }

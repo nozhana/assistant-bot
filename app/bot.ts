@@ -16,6 +16,7 @@ import asstInlineHandler from "./handlers/asst-inline-handler";
 import asstGuestCallbackHandler from "./handlers/asst-guest-callback-handler";
 import i18nMiddleware from "./middlewares/i18n-middleware";
 import importAssistantScene from "./scenes/import-assistant-scene";
+import fileScene from "./scenes/file-scene";
 
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 const store = SQLite<SessionData>({
@@ -48,6 +49,7 @@ const stage = new Scenes.Stage([
   assistantScene,
   newAssistantScene,
   importAssistantScene,
+  fileScene,
 ]);
 bot.use(stage.middleware());
 

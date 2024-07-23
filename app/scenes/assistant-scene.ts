@@ -329,6 +329,17 @@ assistantScene.hears(/^[^\/].*/g, async (ctx, next) => {
   return assistantDetails(ctx, id);
 });
 
+assistantScene.action(/asst\.([^.]+)\.files/g, async (ctx) => {
+  const id = ctx.match[1];
+  const { prisma } = ctx;
+  const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
+  await ctx.answerCbQuery(
+    ctx.t("files:cb.files", { assistant: assistant.name })
+  );
+  await ctx.editMessageReplyMarkup(undefined);
+  return ctx.scene.enter("fileScene", { assistantId: id });
+});
+
 assistantScene.action(/asst\.([^.]+)\.code/g, async (ctx) => {
   const id = ctx.match[1];
   const { prisma, openai } = ctx;
@@ -599,10 +610,11 @@ assistantScene.action(/asst\.([^.]+)$/g, async (ctx) => {
   return assistantDetails(ctx, id);
 });
 
-async function assistantDetails(ctx: BotContext, id: string) {
+export async function assistantDetails(ctx: BotContext, id: string) {
   const { prisma } = ctx;
   const assistant = await prisma.assistant.findUniqueOrThrow({
     where: { id },
+    include: { files: true },
   });
 
   const isCreator = assistant.userId === ctx.from?.id;
@@ -633,6 +645,7 @@ async function assistantDetails(ctx: BotContext, id: string) {
       isGuest || isPersonalAssistant || (assistant.public && !isCreator)
     )
     .text(ctx.t("asst:btn.conv.new"), `asst.${assistant.id}.chat`)
+    .text(ctx.t("asst:btn.files"), `asst.${assistant.id}.files`, !isCreator)
     .text(
       (assistant.hasCode ? "✅ " : "") + ctx.t("asst:btn.codeinterpreter"),
       `asst.${assistant.id}.code`,
@@ -643,15 +656,17 @@ async function assistantDetails(ctx: BotContext, id: string) {
       `asst.${assistant.id}.rss`,
       isGuest || (assistant.public && !isCreator)
     )
-    .text(
-      (assistant.hasWeather ? "✅ " : "") + ctx.t("asst:btn.weather"),
-      `asst.${assistant.id}.weather`,
-      isGuest || (assistant.public && !isCreator)
-    )
-    .text(
-      (assistant.hasGoogle ? "✅ " : "") + ctx.t("asst:btn.google"),
-      `asst.${assistant.id}.google`,
-      isGuest || (assistant.public && !isCreator)
+    .row(
+      InlineKeyboard.text(
+        (assistant.hasWeather ? "✅ " : "") + ctx.t("asst:btn.weather"),
+        `asst.${assistant.id}.weather`,
+        isGuest || (assistant.public && !isCreator)
+      ),
+      InlineKeyboard.text(
+        (assistant.hasGoogle ? "✅ " : "") + ctx.t("asst:btn.google"),
+        `asst.${assistant.id}.google`,
+        isGuest || (assistant.public && !isCreator)
+      )
     )
     .text(
       assistant.public
@@ -711,17 +726,28 @@ async function assistantDetails(ctx: BotContext, id: string) {
         reply_markup: keyboard,
       }
     );
-  } catch (error) {
+  } catch {
     try {
       await ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
         caption: response,
         parse_mode: "HTML",
+        reply_markup: keyboard,
       });
     } catch {
-      await ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
-        caption: `🖼️ <b>${assistant.name}</b>`,
-        parse_mode: "HTML",
-      });
+      try {
+        await ctx.replyWithPhoto(
+          assistant.image ?? Constants.thumbnail(assistant.name),
+          {
+            caption: `🖼️ <b>${assistant.name}</b>`,
+            parse_mode: "HTML",
+          }
+        );
+      } catch {
+        await ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
+          caption: `🖼️ <b>${assistant.name}</b>`,
+          parse_mode: "HTML",
+        });
+      }
       try {
         await ctx.replyWithHTML(response, { reply_markup: keyboard });
       } catch {

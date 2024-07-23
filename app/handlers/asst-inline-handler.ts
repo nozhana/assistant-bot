@@ -16,25 +16,21 @@ const asstInlineHandler = async (
 
   let assistants;
 
-  if (query.trim().length) {
-    assistants = await prisma.assistant.findMany({
-      where: {
-        userId: ctx.from.id,
-        name: { contains: query.trim(), mode: "insensitive" },
+  assistants = await prisma.assistant.findMany({
+    where: {
+      userId: ctx.from.id,
+      name: {
+        contains: query.trim() || undefined,
+        not: "Personal assistant",
+        mode: "insensitive",
       },
-    });
-  } else {
-    assistants = await prisma.assistant.findMany({
-      where: { userId: ctx.from.id },
-    });
-  }
-
-  if (!assistants.length) return next();
+      public: { not: true },
+    },
+  });
 
   const articles: InlineQueryResultArticle[] = [];
 
   for (let assistant of assistants) {
-    if (assistant.name.toLowerCase() === "personal assistant") continue;
     articles.push({
       type: "article",
       id: assistant.id,

@@ -113,69 +113,195 @@ chatScene.on(message("document"), async (ctx) => {
       purpose: "assistants",
     });
   } catch (error) {
+    await ctx.deleteMessage(waitMessage.message_id);
     return ctx.replyWithHTML(
       ctx.t("chat:html.doc.upload.failed") + `\n${error}`
     );
   }
 
-  const assistant = (
-    await prisma.conversation.findUniqueOrThrow({
-      where: { id: conversationId },
-      select: { assistant: true },
-    })
-  ).assistant;
+  const conversation = await prisma.conversation.findUniqueOrThrow({
+    where: { id: conversationId },
+    select: { assistant: { include: { files: true } } },
+  });
+  const assistant = conversation.assistant;
 
   await ctx.sendChatAction("typing");
-  let store: VectorStore | null = null;
-  try {
-    store = await openai.beta.vectorStores.create({
-      name: ctx.message.document.file_name,
-      file_ids: [remoteFile.id],
-      expires_after: { anchor: "last_active_at", days: 2 },
-    });
-  } catch {}
 
   const remoteAsst = await openai.beta.assistants.retrieve(
     assistant.serversideId
   );
 
-  const tools: AssistantTool[] = [];
-  const tool_resources: AssistantUpdateParams.ToolResources = {};
+  let vectorStoreId =
+    remoteAsst.tool_resources?.file_search?.vector_store_ids?.pop();
 
-  tools.push({ type: "file_search" });
+  let fileSearch = false;
 
-  const storeIds =
-    remoteAsst.tool_resources?.file_search?.vector_store_ids ?? [];
-  const codeFileIds =
-    remoteAsst.tool_resources?.code_interpreter?.file_ids ?? [];
-
-  tool_resources.file_search = { vector_store_ids: [...storeIds] };
-  if (store) tool_resources.file_search.vector_store_ids?.push(store.id);
-
-  if (remoteAsst.tools.filter((v) => v.type === "code_interpreter").length) {
-    tools.push({ type: "code_interpreter" });
+  if (vectorStoreId) {
+    try {
+      await openai.beta.vectorStores.files.create(vectorStoreId, {
+        file_id: remoteFile.id,
+      });
+      fileSearch = true;
+    } catch {}
+  } else {
+    try {
+      const store = await openai.beta.vectorStores.create({
+        name: ctx.message.document.file_name,
+        file_ids: [remoteFile.id],
+        expires_after: { anchor: "last_active_at", days: 2 },
+      });
+      vectorStoreId = store.id;
+      fileSearch = true;
+    } catch {}
   }
 
-  tool_resources.code_interpreter = {
-    file_ids: [...codeFileIds, remoteFile.id],
-  };
+  const tool_resources: AssistantUpdateParams.ToolResources = {};
 
+  if (vectorStoreId)
+    tool_resources.file_search = { vector_store_ids: [vectorStoreId] };
+
+  if (assistant.hasCode) {
+    const codeFileIds =
+      remoteAsst.tool_resources?.code_interpreter?.file_ids ?? [];
+
+    tool_resources.code_interpreter = {
+      file_ids: [
+        ...codeFileIds.filter((v) => v !== remoteFile.id),
+        remoteFile.id,
+      ],
+    };
+  }
+
+  const tools: AssistantTool[] = [{ type: "file_search" }];
   tools.push(...remoteAsst.tools.filter((v) => v.type === "function"));
+  if (assistant.hasCode) tools.push({ type: "code_interpreter" });
 
   await openai.beta.assistants.update(assistant.serversideId, {
     tools,
     tool_resources,
   });
 
+  await prisma.assistant.update({
+    where: { id: assistant.id },
+    data: {
+      files: {
+        create: {
+          serversideId: remoteFile.id,
+          filename: ctx.message.document.file_name,
+          codeInterpreter: assistant.hasCode,
+          fileSearch,
+          user: { connect: { id: ctx.from.id } },
+        },
+      },
+    },
+  });
+
   try {
     await ctx.deleteMessage(waitMessage.message_id);
   } catch {}
-  return ctx.replyWithHTML(
+
+  await ctx.replyWithHTML(
     ctx.t("chat:html.doc.upload.success", {
       filename: remoteFile.filename,
       count: 2,
     })
   );
+
+  if (ctx.text) return handlePrompt(ctx, ctx.text);
+});
+
+chatScene.on(message("photo"), async (ctx) => {
+  const { openai, prisma } = ctx;
+  const { conversationId } = ctx.scene.session;
+
+  const photo = ctx.message.photo.pop()!;
+
+  const fileLink = await ctx.telegram.getFileLink(photo.file_id);
+  const res = await fetch(fileLink);
+  const buffer = Buffer.from(await res.arrayBuffer());
+
+  const waitMessage = await ctx.replyWithHTML(ctx.t("html.wait"));
+
+  await ctx.sendChatAction("upload_photo");
+
+  let remoteFile: FileObject;
+  try {
+    remoteFile = await openai.files.create({
+      file: await toFile(buffer, `${photo.file_id}.png`),
+      purpose: "assistants",
+    });
+  } catch (error) {
+    await ctx.deleteMessage(waitMessage.message_id);
+    return ctx.replyWithHTML(
+      ctx.t("chat:html.doc.upload.failed") + `\n${error}`
+    );
+  }
+
+  const conversation = await prisma.conversation.findUniqueOrThrow({
+    where: { id: conversationId },
+    include: { assistant: { include: { files: true } } },
+  });
+  const assistant = conversation.assistant;
+
+  await ctx.sendChatAction("typing");
+
+  const remoteAsst = await openai.beta.assistants.retrieve(
+    assistant.serversideId
+  );
+
+  const tool_resources: AssistantUpdateParams.ToolResources = {};
+  tool_resources.file_search = remoteAsst.tool_resources?.file_search;
+
+  const tools: AssistantTool[] = remoteAsst.tools.filter(
+    (e) => e.type !== "code_interpreter"
+  );
+
+  if (assistant.hasCode) {
+    const codeFileIds =
+      remoteAsst.tool_resources?.code_interpreter?.file_ids ?? [];
+
+    tool_resources.code_interpreter = {
+      file_ids: [
+        ...codeFileIds.filter((v) => v !== remoteFile.id),
+        remoteFile.id,
+      ],
+    };
+
+    tools.push({ type: "code_interpreter" });
+  }
+
+  await openai.beta.assistants.update(assistant.serversideId, {
+    tools,
+    tool_resources,
+  });
+
+  await prisma.assistant.update({
+    where: { id: assistant.id },
+    data: {
+      files: {
+        create: {
+          serversideId: remoteFile.id,
+          filename: remoteFile.filename,
+          codeInterpreter: assistant.hasCode,
+          fileSearch: false,
+          user: { connect: { id: assistant.userId } },
+        },
+      },
+    },
+  });
+
+  try {
+    await ctx.deleteMessage(waitMessage.message_id);
+  } catch {}
+
+  await ctx.replyWithHTML(
+    ctx.t("chat:html.photo.upload.success", {
+      filename: remoteFile.filename,
+      count: 2,
+    })
+  );
+
+  if (ctx.text) return handlePrompt(ctx, ctx.text);
 });
 
 chatScene.command("leave", async (ctx) => {
@@ -212,7 +338,7 @@ async function handlePrompt(ctx: BotContext, text: string) {
     content: string;
   }[] = [];
 
-  messages.push(...conversation.messages);
+  messages.push(...conversation.messages.slice(-10));
   messages.push({ role: "USER", content: text });
 
   const userMessage = await prisma.message.create({
@@ -576,7 +702,6 @@ async function handlePrompt(ctx: BotContext, text: string) {
       temperature: 0.7,
       max_completion_tokens: 4095,
       parallel_tool_calls: false,
-      truncation_strategy: { type: "last_messages", last_messages: 10 },
     });
 
     // for await (const event of stream) {

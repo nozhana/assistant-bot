@@ -152,24 +152,35 @@ ${character.definition}`;
         await ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
           caption: response,
           parse_mode: "HTML",
+          reply_markup: keyboard,
         });
       } catch {
-        await ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
-          caption: `🖼️ <b>${assistant.name}</b>`,
-          parse_mode: "HTML",
-        });
-      }
-      try {
-        await ctx.replyWithHTML(response, { reply_markup: keyboard });
-      } catch {
-        await ctx.replyWithHTML(
-          ctx.t("asst:html.asst", {
-            assistant: assistant.name,
-            instructions: ctx.t("asst:html.inst.toolong"),
-            greeting: ctx.t("asst:html.greeting.toolong"),
-          }),
-          { reply_markup: keyboard }
-        );
+        try {
+          await ctx.replyWithPhoto(
+            assistant.image ?? Constants.thumbnail(assistant.name),
+            {
+              caption: `🖼️ <b>${assistant.name}</b>`,
+              parse_mode: "HTML",
+            }
+          );
+        } catch {
+          await ctx.replyWithPhoto(Constants.thumbnail(assistant.name), {
+            caption: `🖼️ <b>${assistant.name}</b>`,
+            parse_mode: "HTML",
+          });
+        }
+        try {
+          await ctx.replyWithHTML(response, { reply_markup: keyboard });
+        } catch {
+          await ctx.replyWithHTML(
+            ctx.t("asst:html.asst", {
+              assistant: assistant.name,
+              instructions: ctx.t("asst:html.inst.toolong"),
+              greeting: ctx.t("asst:html.greeting.toolong"),
+            }),
+            { reply_markup: keyboard }
+          );
+        }
       }
     }
   }

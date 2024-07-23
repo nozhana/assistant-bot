@@ -21,6 +21,7 @@ model User {
   messages          Message[]
   guestAssistantIds String[]       @db.ObjectId
   guestAssistants   Assistant[]    @relation("guests", fields: [guestAssistantIds], references: [id])
+  files             File[]
 
   @@map("users")
 }
@@ -32,17 +33,18 @@ model Assistant {
   instructions  String?
   greeting      String?
   image         String?
-  hasCode       Boolean        @default(false) @db.Bool
-  hasRss        Boolean        @default(false) @db.Bool
-  hasWeather    Boolean        @default(false) @db.Bool
-  hasGoogle     Boolean        @default(false) @db.Bool
-  public        Boolean        @default(false) @db.Bool
+  hasCode       Boolean        @default(false)
+  hasRss        Boolean        @default(false)
+  hasWeather    Boolean        @default(false)
+  hasGoogle     Boolean        @default(false)
+  public        Boolean        @default(false)
   userId        Int
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   guestIds      Int[]
   guests        User[]         @relation("guests", fields: [guestIds], references: [id])
   conversations Conversation[]
   messages      Message[]
+  files         File[]
 
   @@map("assistants")
 }
@@ -72,6 +74,20 @@ model Message {
   assistant      Assistant    @relation(fields: [assistantId], references: [id], onDelete: Cascade)
 
   @@map("messages")
+}
+
+model File {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  serversideId    String    @unique
+  filename        String    @default("Unnamed")
+  codeInterpreter Boolean   @default(false)
+  fileSearch      Boolean   @default(true)
+  userId          Int
+  assistantId     String    @db.ObjectId
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assistant       Assistant @relation(fields: [assistantId], references: [id], onDelete: Cascade)
+
+  @@map("files")
 }
 
 enum Role {

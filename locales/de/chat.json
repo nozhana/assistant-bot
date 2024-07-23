@@ -5,6 +5,7 @@
   "html.transcription.failed": "❌ <b>Transkription fehlgeschlagen.</b>",
   "html.doc.upload.failed": "❌ <b>Dokument konnte nicht hochgeladen werden.</b>",
   "html.doc.upload.success": "📎 Dokument dem Assistenten beigefügt.\n📁 <b>Dateiname:</b> <code>{{filename}}</code>\n\n⏳ Diese Datei ist so eingestellt, dass sie nach <b>{{count}} Tagen</b> der Inaktivität abläuft.",
+  "html.photo.upload.success": "🏞️ Bild dem Assistenten für Code-Interpreter beigefügt.\n📁 <b>Dateiname:</b> <code>{{filename}}</code>\n\n⏳ Dieses Bild ist so eingestellt, dass es nach <b>{{count}} Tagen</b> der Inaktivität abläuft.",
   "cb.leave": "🚫 Gespräch verlassen.",
   "html.response.audio.failed": "❌ <b>Ausgabe-Audio konnte nicht kodiert werden.</b>",
   "html.codeinterpreter.created": "🧑‍💻 <i>Code ausführen...</i>",
