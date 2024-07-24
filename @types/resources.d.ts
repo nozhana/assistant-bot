@@ -91,6 +91,8 @@ interface Resources {
   },
   "chat": {
     "cb.chatting": "💬 Chatting",
+    "cb.balance.low": "🫰 Insufficient funds! Please buy tokens to continue chatting.",
+    "html.balance.low": "🫰 <b>Insufficient funds!</b>\n<i>Please buy tokens to continue chatting.</i>\n\nGo to your wallet to top up 👉 /wallet",
     "html.chatting": "You're now talking to <b>{{assistant}}</b>.",
     "btn.leave": "🚫 Leave",
     "html.transcription.failed": "❌ <b>Transcription failed.</b>",

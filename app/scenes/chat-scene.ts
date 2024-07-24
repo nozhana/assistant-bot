@@ -8,7 +8,6 @@ import {
 } from "openai/resources/beta/assistants";
 import escapeHtml from "../util/escape-html";
 import { InputMediaPhoto } from "telegraf/typings/core/types/typegram";
-import { VectorStore } from "openai/resources/beta/vector-stores/vector-stores";
 import { FileObject } from "openai/resources";
 import OpenAIEventHandler from "../util/event-handler";
 import { randomUUID } from "crypto";
@@ -16,6 +15,7 @@ import { RunSubmitToolOutputsParams } from "openai/resources/beta/threads/runs/r
 import Parser from "rss-parser";
 import Constants from "../util/constants";
 import { AssistantStream } from "openai/lib/AssistantStream";
+import InlineKeyboard from "../util/inline-keyboard";
 
 const chatScene = new Scenes.BaseScene<BotContext>("chatScene");
 export default chatScene;
@@ -69,6 +69,14 @@ chatScene.enter(async (ctx) => {
 });
 
 chatScene.on(message("text"), async (ctx, next) => {
+  const { prisma } = ctx;
+  const { id } = ctx.from;
+  const user = await prisma.user.findUniqueOrThrow({ where: { id } });
+  if (!user.balance || user.balance <= 0)
+    return ctx.replyWithHTML(ctx.t("chat:html.balance.low"), {
+      reply_markup: new InlineKeyboard().text(ctx.t("btn.back"), "chat.leave"),
+    });
+
   if (ctx.text.startsWith("/")) {
     return next();
   }
@@ -77,7 +85,15 @@ chatScene.on(message("text"), async (ctx, next) => {
 });
 
 chatScene.on(message("voice"), async (ctx) => {
-  const { openai } = ctx;
+  const { openai, prisma } = ctx;
+  const { id } = ctx.from;
+
+  const user = await prisma.user.findUniqueOrThrow({ where: { id } });
+  if (!user.balance || user.balance <= 0)
+    return ctx.replyWithHTML(ctx.t("chat:html.balance.low"), {
+      reply_markup: new InlineKeyboard().text(ctx.t("btn.back"), "chat.leave"),
+    });
+
   const { file_id } = ctx.message.voice;
   const fileURL = await ctx.telegram.getFileLink(file_id);
   const res = await fetch(fileURL);
@@ -96,6 +112,12 @@ chatScene.on(message("voice"), async (ctx) => {
 
 chatScene.on(message("document"), async (ctx) => {
   const { prisma, openai } = ctx;
+  const { id } = ctx.from;
+  const user = await prisma.user.findUniqueOrThrow({ where: { id } });
+  if (!user.balance || user.balance <= 0)
+    return ctx.replyWithHTML(ctx.t("chat:html.balance.low"), {
+      reply_markup: new InlineKeyboard().text(ctx.t("btn.back"), "chat.leave"),
+    });
   const { conversationId } = ctx.scene.session;
 
   const { file_id } = ctx.message.document;
@@ -212,6 +234,12 @@ chatScene.on(message("document"), async (ctx) => {
 
 chatScene.on(message("photo"), async (ctx) => {
   const { openai, prisma } = ctx;
+  const { id } = ctx.from;
+  const user = await prisma.user.findUniqueOrThrow({ where: { id } });
+  if (!user.balance || user.balance <= 0)
+    return ctx.replyWithHTML(ctx.t("chat:html.balance.low"), {
+      reply_markup: new InlineKeyboard().text(ctx.t("btn.back"), "chat.leave"),
+    });
   const { conversationId } = ctx.scene.session;
 
   const photo = ctx.message.photo.pop()!;
@@ -659,6 +687,10 @@ async function handlePrompt(ctx: BotContext, text: string) {
     .register("runCompleted", async (runId, threadId) => {
       try {
         const run = await openai.beta.threads.runs.retrieve(threadId, runId);
+        const user = await prisma.user.update({
+          where: { id: ctx.from?.id },
+          data: { balance: { decrement: run.usage?.total_tokens } },
+        });
         await prisma.message.update({
           where: { id: userMessage.id },
           data: { tokens: run.usage?.prompt_tokens },
@@ -673,6 +705,7 @@ async function handlePrompt(ctx: BotContext, text: string) {
             promptTokens: run.usage?.prompt_tokens,
             completionTokens: run.usage?.completion_tokens,
             totalTokens: run.usage?.total_tokens,
+            balance: user.balance,
           })
         );
       } catch (error) {

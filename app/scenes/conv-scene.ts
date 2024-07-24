@@ -45,9 +45,16 @@ convScene.action("conv.asst.new", async (ctx) => {
   return ctx.scene.enter("newAssistantScene");
 });
 
-convScene.action(/conv\.asst\.[^.]+/g, async (ctx) => {
-  const assistantId = ctx.match[0].split(".").pop()!;
+convScene.action(/^conv\.asst\.([^.]+)$/g, async (ctx) => {
+  const assistantId = ctx.match[1];
   const { prisma } = ctx;
+  const { id } = ctx.from;
+  const user = await prisma.user.findUniqueOrThrow({ where: { id } });
+  if (!user.balance || user.balance <= 0)
+    return ctx.answerCbQuery(ctx.t("chat:cb.balance.low"), {
+      show_alert: true,
+    });
+
   const newConversation = await prisma.conversation.create({
     data: {
       assistantId,
@@ -61,6 +68,14 @@ convScene.action(/conv\.asst\.[^.]+/g, async (ctx) => {
 
 convScene.action(/conv\.([^.]+)\.cont/g, async (ctx) => {
   const conversationId = ctx.match[1];
+  const { prisma } = ctx;
+  const { id } = ctx.from;
+  const user = await prisma.user.findUniqueOrThrow({ where: { id } });
+  if (!user.balance || user.balance <= 0)
+    return ctx.answerCbQuery(ctx.t("chat:cb.balance.low"), {
+      show_alert: true,
+    });
+
   return enterConversation(ctx, conversationId);
 });
 
