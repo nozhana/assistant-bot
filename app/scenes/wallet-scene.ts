@@ -3,6 +3,7 @@ import BotContext from "../middlewares/bot-context";
 import InlineKeyboard from "../util/inline-keyboard";
 import { plans } from "../entities/plan";
 import { Assets, CryptoPay } from "@foile/crypto-pay-api";
+import cron from "node-cron";
 
 const walletScene = new Scenes.BaseScene<BotContext>("walletScene");
 
@@ -83,7 +84,23 @@ walletScene.action(/^wallet\.topup\.continue\.(\d+)$/g, async (ctx) => {
   console.log("❇️ INVOICE CREATED:");
   console.log(createdInvoice);
 
-  await ctx.answerCbQuery("Check console log.", { show_alert: true });
+  let task = cron.schedule(
+    "*/2 * * * *",
+    async () => {
+      const invoices = await ctx.pay.getInvoices({
+        invoice_ids: createdInvoice.invoice_id,
+      });
+      console.log("Updated invoice:");
+      console.log(invoices);
+    },
+    { scheduled: false }
+  );
+
+  task.start();
+
+  await ctx.answerCbQuery("Check console log.", {
+    show_alert: true,
+  });
   return ctx.scene.reenter();
 });
 
