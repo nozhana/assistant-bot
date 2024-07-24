@@ -187,7 +187,9 @@ interface Resources {
     "btn.topup": "💳 Top up",
     "btn.gift": "🎁 Gift",
     "cb.topup": "💳 Top up",
-    "html.topup": "💳 <b>Top up your balance.</b>\n\n👇 <i>Choose one of the plans offered below.\nYou'll be redirected to a crypto payment gateway to complete your order.</i>"
+    "html.topup": "💳 <b>Top up your balance.</b>\n\n👇 <i>Choose one of the plans offered below.\nYou'll be redirected to a crypto payment gateway to complete your order.</i>",
+    "html.topup.plan": "❇️ <b>Chosen plan:</b>\n\n💬 <code>{{count}}</code> tokens\n💲 <code>{{price}}</code> USDT\n\n💳 Continue to gateway?",
+    "btn.topup.continue": "Continue 💳"
   }
 }
 

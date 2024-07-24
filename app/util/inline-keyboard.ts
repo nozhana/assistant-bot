@@ -1,3 +1,4 @@
+import { i18n } from "i18next";
 import { Markup } from "telegraf";
 import {
   InlineKeyboardButton,
@@ -9,41 +10,41 @@ export type Hideable<B> = B & { hide?: boolean };
 class InlineKeyboard implements InlineKeyboardMarkup {
   inline_keyboard: InlineKeyboardButton[][] = [];
 
-  text(text: string, data: string, hide?: boolean) {
+  text(text: string, data: string, hide?: boolean): InlineKeyboard {
     if (hide) return this;
     const button = Markup.button.callback(text, data, hide);
     this.inline_keyboard.push([button]);
     return this;
   }
 
-  url(text: string, url: string, hide?: boolean) {
+  url(text: string, url: string, hide?: boolean): InlineKeyboard {
     if (hide) return this;
     const button = Markup.button.url(text, url, hide);
     this.inline_keyboard.push([button]);
     return this;
   }
 
-  switchToChat(text: string, value?: string, hide?: boolean) {
+  switchToChat(text: string, value?: string, hide?: boolean): InlineKeyboard {
     if (hide) return this;
     const button = Markup.button.switchToChat(text, value ?? "", hide);
     this.inline_keyboard.push([button]);
     return this;
   }
 
-  button(button: Hideable<InlineKeyboardButton>) {
+  button(button: Hideable<InlineKeyboardButton>): InlineKeyboard {
     if (button.hide) return this;
     this.inline_keyboard.push([button]);
     return this;
   }
 
-  row(...buttons: Hideable<InlineKeyboardButton>[]) {
+  row(...buttons: Hideable<InlineKeyboardButton>[]): InlineKeyboard {
     const row = buttons.filter((b) => !b.hide);
     if (!row.length) return this;
     this.inline_keyboard.push(row);
     return this;
   }
 
-  rows(...rows: Hideable<InlineKeyboardButton>[][]) {
+  rows(...rows: Hideable<InlineKeyboardButton>[][]): InlineKeyboard {
     const aggregation = rows
       .map((row) => row.filter((b) => !b.hide))
       .filter((row) => row.length);

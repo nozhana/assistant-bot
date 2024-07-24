@@ -2,6 +2,7 @@ import { Scenes } from "telegraf";
 import BotContext from "../middlewares/bot-context";
 import InlineKeyboard from "../util/inline-keyboard";
 import { plans } from "../entities/plan";
+import { Assets, CryptoPay } from "@foile/crypto-pay-api";
 
 const walletScene = new Scenes.BaseScene<BotContext>("walletScene");
 
@@ -22,7 +23,9 @@ walletScene.enter(async (ctx) => {
   });
 
   try {
-    await ctx.answerCbQuery(ctx.t("wallet:cb.wallet"));
+    try {
+      await ctx.answerCbQuery(ctx.t("wallet:cb.wallet"));
+    } catch {}
     return ctx.editMessageText(response, {
       reply_markup: keyboard,
       parse_mode: "HTML",
@@ -37,8 +40,50 @@ walletScene.action("wallet.back", async (ctx) => {
 });
 
 walletScene.action(/^wallet\.topup\.plan\.(\d+)$/g, async (ctx) => {
-  // TODO: Topup
-  return ctx.answerCbQuery("Coming soon!", { show_alert: true });
+  const planIndex = Number(ctx.match[1]);
+  const plan = plans[planIndex];
+
+  const keyboard = new InlineKeyboard().row(
+    InlineKeyboard.text(ctx.t("btn.back"), "wallet.back"),
+    InlineKeyboard.text(
+      ctx.t("wallet:btn.topup.continue"),
+      `wallet.topup.continue.${planIndex}`
+    )
+  );
+
+  return ctx.editMessageText(
+    ctx.t("wallet:html.topup.plan", {
+      count: plan.tokens,
+      price: plan.priceUSD,
+    }),
+    { reply_markup: keyboard, parse_mode: "HTML" }
+  );
+});
+
+walletScene.action(/^wallet\.topup\.continue\.(\d+)$/g, async (ctx) => {
+  const planIndex = Number(ctx.match[1]);
+  const plan = plans[planIndex];
+
+  const getMe = await ctx.pay.getMe();
+  console.log("Get Me: ");
+  console.log(getMe);
+
+  const createdInvoice = await ctx.pay.createInvoice(
+    Assets.USDT,
+    String(plan.priceUSD),
+    {
+      description: "Testing 1,2,3",
+      hidden_message: "You should only see this after payment.",
+      expires_in: 1800,
+      payload: `${ctx.from.id}.${planIndex}`,
+    }
+  );
+
+  console.log("❇️ INVOICE CREATED:");
+  console.log(createdInvoice);
+
+  await ctx.answerCbQuery("Check console log.", { show_alert: true });
+  return ctx.scene.reenter();
 });
 
 walletScene.action("wallet.topup", async (ctx) => {

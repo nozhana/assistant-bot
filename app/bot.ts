@@ -18,6 +18,7 @@ import i18nMiddleware from "./middlewares/i18n-middleware";
 import importAssistantScene from "./scenes/import-assistant-scene";
 import fileScene from "./scenes/file-scene";
 import walletScene from "./scenes/wallet-scene";
+import { CryptoPay } from "@foile/crypto-pay-api";
 
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 const store = SQLite<SessionData>({
@@ -27,9 +28,28 @@ bot.use(session({ defaultSession, store }));
 
 const prisma = new PrismaClient();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const cryptopay = new CryptoPay(process.env.CRYPTOPAY_TOKEN!, {
+  protocol: "https",
+  hostname: "testnet-pay.crypt.bot",
+  updateVerification: true,
+  webhook: {
+    serverHostname: "localhost",
+    serverPort: 8007,
+    path: process.env.CRYPTOPAY_TOKEN!,
+  },
+});
+
 bot.use((ctx, next) => {
   ctx.prisma ??= prisma;
+
   ctx.openai ??= openai;
+
+  ctx.pay ??= cryptopay;
+  ctx.pay.invoicePaid((update: any) => {
+    console.log("💵 INVOICE PAID. Payload:");
+    console.log(update.payload);
+  });
+
   return next();
 });
 
