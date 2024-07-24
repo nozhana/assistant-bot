@@ -1,1 +1,18 @@
-{}
+{
+  "lit.token.count_zero": "خالی از توکن",
+  "lit.token.count_one": "{{count}} توکن",
+  "lit.token.count_other": "{{count}} توکن",
+  "html.wallet": "🐷 <b>کیف پول</b>\n\n👋 سلام، {{user}}.\n<b>موجودی:</b> <code>{{count}}</code> توکن",
+  "cb.wallet": "🐷 کیف پول",
+  "btn.topup": "💳 شارژ حساب",
+  "btn.gift": "🎁 هدیه",
+  "cb.topup": "💳 شارژ حساب",
+  "html.topup": "💳 <b>حساب خود را شارژ کنید.</b>\n\n👇 <i>یکی از بسته‌های زیر را انتخاب کنید.\nسپس به یک درگاه پرداخت رمزارزی متصل خواهید شد تا هزینه‌ی بسته را بپردازید.</i>",
+  "cb.topup.plan": "❇️ بسته",
+  "html.topup.plan": "❇️ <b>بسته‌ی انتخابی</b>\n\n💬 <code>{{count}}</code> توکن\n💲 <code>{{price}}</code> USDT\n\n💳 ادامه می‌دهید؟",
+  "btn.topup.continue": "ادامه 💳",
+  "html.topup.success": "🙏 <b>پرداخت شما به مبلغ <code>{{price}}</code> USDT با موفقیت دریافت شد.</b>\n\n<b>توکن‌های خریداری شده:</b> <code>{{count}}</code>\n<b>موجودی جدید:</b> <code>{{balance}}</code> توکن",
+  "btn.pay": "به سمت درگاه 👈",
+  "cb.topup.pay": "درگاه پرداخت ایجاد شد. لطفا روی دکمه‌ی زیر کلیک کنید تا به درگاه رفته و پرداخت خود را انجام دهید.",
+  "html.topup.pay": "⏳ <b>در انتظار پرداخت</b>\n\n❇️ <b>بسته‌ی انتخابی:</b>\n\n💬 <code>{{count}}</code> توکن\n💲 <code>{{price}}</code> USDT"
+}

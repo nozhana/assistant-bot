@@ -4,13 +4,13 @@
   "cb.files.page": "🗃️ {{assistant}}s Dateien - Seite {{page}}",
   "btn.del.all": "🗑️ Alle Dateien löschen",
   "html.empty": "📂 <b>Sie haben noch keine Dateien hochgeladen.</b>\n❇️ <i>Beginnen Sie, indem Sie Dateien in Ihren Assistenten im Chat hochladen.</i>",
-  "html.list": "🗃️ <b>{{assistant}}s Dateien</b>\n\n💁 <i>Tippen Sie auf einen Dateinamen, um Details anzuzeigen.</i>",
+  "html.list": "🗃️ <b>{{assistant}}Dateien</b>\n\n💁 <i>Tippen Sie auf einen Dateinamen, um Details anzuzeigen.</i>",
   "btn.codeinterpreter": "🧑‍💻 Code-Interpreter",
   "btn.filesearch": "🔎 Dateisuche",
   "html.file": "#️⃣ <b>ID:</b> <code>{{id}}</code>\n\n📁 <b>Dateiname:</b> <code>{{filename}}</code>\n\n🤖 <b>Assistent:</b> <code>{{assistant}}</code>",
   "cb.code.off": "🧑‍💻 Datei aus dem Speicher des Code-Interpreters entfernt.",
   "cb.code.on": "🧑‍💻 Datei zum Code-Interpreter-Speicher hinzugefügt.",
-  "cb.filesearch.unavailable": "❌ Sie können die Dateisuchefunktion nicht ändern.",
-  "cb.deleted": "🗑️ {{file}} erfolgreich gelöscht",
+  "cb.filesearch.unavailable": "❌ Sie dürfen die Dateisuchefunktion nicht ändern.",
+  "cb.deleted": "🗑️ {{file}} erfolgreich gelöscht.",
   "cb.deleted.all": "🗑️ Alle Dateien erfolgreich gelöscht."
 }

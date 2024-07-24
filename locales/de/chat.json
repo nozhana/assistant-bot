@@ -1,7 +1,7 @@
 {
   "cb.chatting": "💬 Chatten",
   "cb.balance.low": "🫰 Unzureichendes Guthaben! Bitte kaufen Sie Token, um weiter zu chatten.",
-  "html.balance.low": "🫰 <b>Unzureichende Mittel!</b>\n<i>Bitte kaufen Sie Token, um weiter zu chatten.</i>\n\nGehen Sie zu Ihrer Brieftasche um :backhand_index_pointing_right aufzurufen: /wallet",
+  "html.balance.low": "🫰 <b>Unzureichendes Guthaben!</b>\n<i>Bitte kaufen Sie Token, um weiter zu chatten.</i>\n\nGehen Sie zu Ihrer Wallet um aufzuladen. 👉 /wallet",
   "html.chatting": "Jetzt sprechen Sie mit <b>{{assistant}}</b>.",
   "btn.leave": "🚫 Verlassen",
   "html.transcription.failed": "❌ <b>Transkription fehlgeschlagen.</b>",
