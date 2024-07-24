@@ -27,12 +27,12 @@ walletScene.enter(async (ctx) => {
     try {
       await ctx.answerCbQuery(ctx.t("wallet:cb.wallet"));
     } catch {}
-    return ctx.editMessageText(response, {
+    await ctx.editMessageText(response, {
       reply_markup: keyboard,
       parse_mode: "HTML",
     });
   } catch {
-    return ctx.replyWithHTML(response, { reply_markup: keyboard });
+    await ctx.replyWithHTML(response, { reply_markup: keyboard });
   }
 });
 
