@@ -1,14 +1,16 @@
 {
-  "cb.files": "🗃️ {{assistant}}'s files",
-  "cb.files.page": "🗃️ {{assistant}}'s files - page {{page}}",
-  "btn.del.all": "🗑️ Delete all files",
-  "html.empty": "📂 <b>You haven't uploaded any files yet.</b>\n❇️ <i>Start by uploading files to your assistant in chat.</i>",
-  "html.list": "🗃️ <b>{{assistant}}'s files</b>\n\n💁 <i>Tap on a filename to view details.</i>",
-  "btn.codeinterpreter": "🧑‍💻 Code interpreter",
-  "btn.filesearch": "🔎 File search",
-  "html.file": "#️⃣ <b>ID:</b> <code>{{id}}</code>\n\n📁 <b>Filename:</b> <code>{{filename}}</code>\n\n🤖 <b>Assistant:</b> <code>{{assistant}}</code>",
-  "cb.code.off": "🧑‍💻 File removed from code interpreter storage.",
-  "cb.code.on": "🧑‍💻 File added to code interpreter storage.",
-  "cb.filesearch.unavailable": "❌ You cannot change the File search functionality.",
-  "cb.deleted": "🗑️ {{file}} successfully deleted."
+  "cb.files": "🗃️ {{assistant}}s Dateien",
+  "cb.file": "📁 Dateidetails",
+  "cb.files.page": "🗃️ {{assistant}}s Dateien - Seite {{page}}",
+  "btn.del.all": "🗑️ Alle Dateien löschen",
+  "html.empty": "📂 <b>Sie haben noch keine Dateien hochgeladen.</b>\n❇️ <i>Beginnen Sie, indem Sie Dateien in Ihren Assistenten im Chat hochladen.</i>",
+  "html.list": "🗃️ <b>{{assistant}}s Dateien</b>\n\n💁 <i>Tippen Sie auf einen Dateinamen, um Details anzuzeigen.</i>",
+  "btn.codeinterpreter": "🧑‍💻 Code-Interpreter",
+  "btn.filesearch": "🔎 Dateisuche",
+  "html.file": "#️⃣ <b>ID:</b> <code>{{id}}</code>\n\n📁 <b>Dateiname:</b> <code>{{filename}}</code>\n\n🤖 <b>Assistent:</b> <code>{{assistant}}</code>",
+  "cb.code.off": "🧑‍💻 Datei aus dem Speicher des Code-Interpreters entfernt.",
+  "cb.code.on": "🧑‍💻 Datei zum Code-Interpreter-Speicher hinzugefügt.",
+  "cb.filesearch.unavailable": "❌ Sie können die Dateisuchefunktion nicht ändern.",
+  "cb.deleted": "🗑️ {{file}} erfolgreich gelöscht",
+  "cb.deleted.all": "🗑️ Alle Dateien erfolgreich gelöscht."
 }
