@@ -19,6 +19,7 @@ import importAssistantScene from "./scenes/import-assistant-scene";
 import fileScene from "./scenes/file-scene";
 import walletScene from "./scenes/wallet-scene";
 import { CryptoPay } from "@foile/crypto-pay-api";
+import { readFileSync } from "fs";
 
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 const store = SQLite<SessionData>({
@@ -35,7 +36,11 @@ const cryptopay = new CryptoPay(process.env.CRYPTOPAY_TOKEN!, {
   webhook: {
     serverHostname: "localhost",
     serverPort: 8007,
-    path: process.env.CRYPTOPAY_TOKEN!,
+    path: `/${process.env.CRYPTOPAY_TOKEN}`,
+    tls: {
+      key: readFileSync(process.env.TLS_KEY_FILEPATH!),
+      cert: readFileSync(process.env.TLS_CERT_FILEPATH!),
+    },
   },
 });
 
