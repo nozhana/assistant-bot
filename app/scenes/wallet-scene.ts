@@ -75,8 +75,6 @@ walletScene.action(/^wallet\.topup\.continue\.(\d+)$/g, async (ctx) => {
       hidden_message: "You should only see this after payment.",
       expires_in: 1800,
       payload: `${ctx.from.id}.${planIndex}`,
-      paid_btn_name: PaidButtonNames.OPEN_BOT,
-      paid_btn_url: `https://t.me/nozhana_testbot?start=${ctx.from.id}_${planIndex}`,
     }
   );
 
