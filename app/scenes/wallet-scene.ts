@@ -76,7 +76,7 @@ walletScene.action(/^wallet\.topup\.continue\.(\d+)$/g, async (ctx) => {
       expires_in: 1800,
       payload: `${ctx.from.id}.${planIndex}`,
       paid_btn_name: PaidButtonNames.OPEN_BOT,
-      paid_btn_url: `https://t.me/nozhana_testbot?start=${ctx.from.id}.${planIndex}`,
+      paid_btn_url: `https://t.me/nozhana_testbot?start=${ctx.from.id}_${planIndex}`,
     }
   );
 
@@ -97,10 +97,16 @@ walletScene.action(/^wallet\.topup\.continue\.(\d+)$/g, async (ctx) => {
 
       task.stop();
 
-      const user = await prisma.user.update({
+      let user = await prisma.user.update({
         where: { id: ctx.from.id },
         data: { balance: { increment: plan.tokens } },
       });
+      if (!user.balance) {
+        user = await prisma.user.update({
+          where: { id: ctx.from.id },
+          data: { balance: plan.tokens },
+        });
+      }
 
       await ctx.replyWithHTML(
         ctx.t("wallet:html.topup.success", {
