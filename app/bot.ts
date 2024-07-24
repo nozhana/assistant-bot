@@ -32,29 +32,12 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const cryptopay = new CryptoPay(process.env.CRYPTOPAY_TOKEN!, {
   protocol: "https",
   hostname: "testnet-pay.crypt.bot",
-  updateVerification: true,
-  webhook: {
-    serverHostname: "localhost",
-    serverPort: Number(process.env.CRYPTOPAY_PORT) || 443,
-    path: `/${process.env.CRYPTOPAY_TOKEN}`,
-    tls: {
-      key: readFileSync(process.env.TLS_KEY_FILEPATH!),
-      cert: readFileSync(process.env.TLS_CERT_FILEPATH!),
-    },
-  },
 });
 
 bot.use((ctx, next) => {
   ctx.prisma ??= prisma;
-
   ctx.openai ??= openai;
-
   ctx.pay ??= cryptopay;
-  ctx.pay.invoicePaid((update: any) => {
-    console.log("💵 INVOICE PAID. Payload:");
-    console.log(update.payload);
-  });
-
   return next();
 });
 
