@@ -35,7 +35,7 @@ const cryptopay = new CryptoPay(process.env.CRYPTOPAY_TOKEN!, {
   updateVerification: true,
   webhook: {
     serverHostname: "localhost",
-    serverPort: 8007,
+    serverPort: Number(process.env.CRYPTOPAY_PORT) || 443,
     path: `/${process.env.CRYPTOPAY_TOKEN}`,
     tls: {
       key: readFileSync(process.env.TLS_KEY_FILEPATH!),
