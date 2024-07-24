@@ -51,6 +51,7 @@ walletScene.action(/^wallet\.topup\.plan\.(\d+)$/g, async (ctx) => {
     )
   );
 
+  await ctx.answerCbQuery(ctx.t("wallet:cb.topup.plan"));
   return ctx.editMessageText(
     ctx.t("wallet:html.topup.plan", {
       count: plan.tokens,
