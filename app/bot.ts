@@ -20,6 +20,7 @@ import fileScene from "./scenes/file-scene";
 import walletScene from "./scenes/wallet-scene";
 import { CryptoPay } from "@foile/crypto-pay-api";
 import { readFileSync } from "fs";
+import startHandler from "./handlers/start-handler";
 
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 const store = SQLite<SessionData>({
@@ -63,7 +64,7 @@ const stage = new Scenes.Stage([
 ]);
 bot.use(stage.middleware());
 
-bot.start(helpHandler);
+bot.start(startHandler.middleware());
 bot.help(helpHandler);
 bot.settings((ctx) => ctx.scene.enter("settingsScene"));
 bot.command("chat", (ctx) => ctx.scene.enter("convScene"));
