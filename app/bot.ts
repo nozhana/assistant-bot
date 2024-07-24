@@ -20,6 +20,8 @@ import fileScene from "./scenes/file-scene";
 import walletScene from "./scenes/wallet-scene";
 import { CryptoPay } from "@foile/crypto-pay-api";
 
+export const DEBUG = Number(process.env.DEBUG) ? true : false;
+
 const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 const store = SQLite<SessionData>({
   filename: "./telegraf-sessions.sqlite",
@@ -30,7 +32,7 @@ const prisma = new PrismaClient();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const cryptopay = new CryptoPay(process.env.CRYPTOPAY_TOKEN!, {
   protocol: "https",
-  hostname: "testnet-pay.crypt.bot",
+  hostname: (DEBUG ? "testnet-" : "") + "pay.crypt.bot",
 });
 
 bot.use((ctx, next) => {

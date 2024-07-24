@@ -12,6 +12,7 @@ bot
               console.log(`Request: ${req}\nResponse: ${res}\n\n`),
           }
         : undefined,
+      dropPendingUpdates: true,
     },
     async () => {
       await bot.telegram.setMyCommands([
