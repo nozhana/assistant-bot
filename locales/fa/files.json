@@ -1,14 +1,16 @@
 {
-  "cb.files": "🗃️ {{assistant}}'s files",
-  "cb.files.page": "🗃️ {{assistant}}'s files - page {{page}}",
-  "btn.del.all": "🗑️ Delete all files",
-  "html.empty": "📂 <b>You haven't uploaded any files yet.</b>\n❇️ <i>Start by uploading files to your assistant in chat.</i>",
-  "html.list": "🗃️ <b>{{assistant}}'s files</b>\n\n💁 <i>Tap on a filename to view details.</i>",
-  "btn.codeinterpreter": "🧑‍💻 Code interpreter",
-  "btn.filesearch": "🔎 File search",
-  "html.file": "#️⃣ <b>ID:</b> <code>{{id}}</code>\n\n📁 <b>Filename:</b> <code>{{filename}}</code>\n\n🤖 <b>Assistant:</b> <code>{{assistant}}</code>",
-  "cb.code.off": "🧑‍💻 File removed from code interpreter storage.",
-  "cb.code.on": "🧑‍💻 File added to code interpreter storage.",
-  "cb.filesearch.unavailable": "❌ You cannot change the File search functionality.",
-  "cb.deleted": "🗑️ {{file}} successfully deleted."
+  "cb.files": "🗃️ فایل‌های {{assistant}}",
+  "cb.file": "📁 جزئیات فایل",
+  "cb.files.page": "🗃️ فایل‌های {{assistant}} - صفحه {{page}}",
+  "btn.del.all": "🗑️ حذف همه‌ی فایل‌ها",
+  "html.empty": "📂 <b>شما هنوز فایلی بارگذاری نکرده‌اید.</b>\n❇️ <i>برای شروع، درون یک چت با این دستیار، یک فایل آپلود کنید.</i>",
+  "html.list": "🗃️ <b>فایل‌های {{assistant}}</b>\n\n💁 <i>روی یک فایل بزنید تا جزئیات آن را ببینید.</i>",
+  "btn.codeinterpreter": "🧑‍💻 مفسر کد",
+  "btn.filesearch": "🔎 جستجو در سندها",
+  "html.file": "#️⃣ <b>شناسه:</b> <code>{{id}}</code>\n\n📁 <b>نام فایل:</b> <code>{{filename}}</code>\n\n🤖 <b>دستیار:</b> <code>{{assistant}}</code>",
+  "cb.code.off": "🧑‍💻 فایل از انبار مفسر کد حذف شد.",
+  "cb.code.on": "🧑‍💻 فایل به انبار مفسر کد اضافه شد.",
+  "cb.filesearch.unavailable": "❌ شما نمی‌توانید گزینه‌ی جستجو در سندها را تغییر دهید.",
+  "cb.deleted": "🗑️ {{file}} با موفقیت حذف شد.",
+  "cb.deleted.all": "🗑️ تمام فایل‌ها با موفقیت حذف شدند."
 }

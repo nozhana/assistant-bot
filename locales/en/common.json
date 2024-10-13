@@ -9,6 +9,6 @@
   "lang.feedback": "Language changed to 🇬🇧 English.",
   "coming.soon": "👟 Coming soon",
   "html.wait": "<i>Please wait...</i>",
-  "html.help": "💁 <b>Help</b>\n\n/start | /help — ℹ️ Show this message\n/chat — 💬 Talk to an assistant\n/assistants — 🤖 Manage assistants\n/settings — ⚙️ Settings menu",
+  "html.help": "💁 <b>Help</b>\n\n/start | /help — ℹ️ Show this message\n/chat — 💬 Talk to an assistant\n/assistants — 🤖 Manage assistants\n/settings — ⚙️ Settings menu\n/wallet - 🐷 Wallet",
   "cb.error": "❌ There was an error handling your request. Please try again."
 }

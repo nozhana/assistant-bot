@@ -4,6 +4,8 @@
   "html.conv.missing": "Gespräch {{id}} existiert nicht im Datenbank.",
   "btn.continue": "💬 Weiterreden",
   "btn.history": "📖 Verlauf",
+  "btn.del.all": "🗑️ Alle Gespräche löschen",
+  "cb.del.all": "🗑️ Alle Gespräche gelöscht.",
   "cb.deleted": "🗑️ Gespräch wird gelöscht.",
   "tokens": "Token",
   "cb.new": "🤖 Einen Assistenten auswählen",

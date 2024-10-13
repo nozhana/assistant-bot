@@ -91,6 +91,8 @@ interface Resources {
   },
   "chat": {
     "cb.chatting": "💬 Chatting",
+    "cb.balance.low": "🫰 Insufficient funds! Please buy tokens to continue chatting.",
+    "html.balance.low": "🫰 <b>Insufficient funds!</b>\n<i>Please buy tokens to continue chatting.</i>\n\nGo to your wallet to top up 👉 /wallet",
     "html.chatting": "You're now talking to <b>{{assistant}}</b>.",
     "btn.leave": "🚫 Leave",
     "html.transcription.failed": "❌ <b>Transcription failed.</b>",
@@ -128,7 +130,7 @@ interface Resources {
     "lang.feedback": "Language changed to 🇬🇧 English.",
     "coming.soon": "👟 Coming soon",
     "html.wait": "<i>Please wait...</i>",
-    "html.help": "💁 <b>Help</b>\n\n/start | /help — ℹ️ Show this message\n/chat — 💬 Talk to an assistant\n/assistants — 🤖 Manage assistants\n/settings — ⚙️ Settings menu",
+    "html.help": "💁 <b>Help</b>\n\n/start | /help — ℹ️ Show this message\n/chat — 💬 Talk to an assistant\n/assistants — 🤖 Manage assistants\n/settings — ⚙️ Settings menu\n/wallet - 🐷 Wallet",
     "cb.error": "❌ There was an error handling your request. Please try again."
   },
   "conv": {
@@ -176,6 +178,25 @@ interface Resources {
     "cb.voice.changed": "🗣️ Voice set to {{voice}}",
     "html.lang.change": "🌐 <b>Change bot language</b>",
     "cb.lang.change": "🌐 Change language"
+  },
+  "wallet": {
+    "lit.token.count_zero": "no tokens",
+    "lit.token.count_one": "{{count}} token",
+    "lit.token.count_other": "{{count}} tokens",
+    "html.wallet_one": "🐷 <b>Wallet</b>\n\n👋 Hello, {{user}}.\n<b>Token balance:</b> <code>{{balance}}</code> token",
+    "html.wallet_other": "🐷 <b>Wallet</b>\n\n👋 Hello, {{user}}.\n<b>Token balance:</b> <code>{{count}}</code> tokens",
+    "cb.wallet": "🐷 Wallet",
+    "btn.topup": "💳 Top up",
+    "btn.gift": "🎁 Gift",
+    "cb.topup": "💳 Top up",
+    "html.topup": "💳 <b>Top up your balance.</b>\n\n👇 <i>Choose one of the plans offered below.\nYou'll be redirected to a crypto payment gateway to complete your order.</i>",
+    "cb.topup.plan": "❇️ Plan",
+    "html.topup.plan": "❇️ <b>Chosen plan:</b>\n\n💬 <code>{{count}}</code> tokens\n💲 <code>{{price}}</code> USDT\n\n💳 Continue to gateway?",
+    "btn.topup.continue": "Continue 💳",
+    "html.topup.success": "🙏 <b>Your payment of <code>{{price}}</code> USDT was received successfully.</b>\n\n<b>Received tokens:</b> <code>{{count}}</code>\n<b>Current balance:</b> <code>{{balance}}</code> tokens",
+    "btn.pay": "Go to gateway 👉",
+    "cb.topup.pay": "Your payment was created. Please proceed to the gateway to make the transaction.",
+    "html.topup.pay": "⏳ <b>Waiting for payment</b>\n\n❇️ <b>Chosen plan:</b>\n\n💬 <code>{{count}}</code> tokens\n💲 <code>{{price}}</code> USDT"
   }
 }
 

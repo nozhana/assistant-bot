@@ -1,5 +1,7 @@
 {
   "cb.chatting": "💬 Chatten",
+  "cb.balance.low": "🫰 Unzureichendes Guthaben! Bitte kaufen Sie Token, um weiter zu chatten.",
+  "html.balance.low": "🫰 <b>Unzureichendes Guthaben!</b>\n<i>Bitte kaufen Sie Token, um weiter zu chatten.</i>\n\nGehen Sie zu Ihrer Wallet um aufzuladen. 👉 /wallet",
   "html.chatting": "Jetzt sprechen Sie mit <b>{{assistant}}</b>.",
   "btn.leave": "🚫 Verlassen",
   "html.transcription.failed": "❌ <b>Transkription fehlgeschlagen.</b>",
@@ -23,6 +25,6 @@
   "html.google.filter.site.include": "🌐 <i>Nur Ergebnisse von</i>\n<code>{{site}}</code>",
   "html.google.filter.site.exclude": "🚫 <i>Ohne Ergebnisse von</i>\n<code>{{site}}</code>",
   "html.google.done": "🔎 <i>Google-Ergebnisse abgerufen.</i>",
-  "html.usage": "🗨️ <b>Eingabe:</b> <code>{{promptTokens}} Token</code>\n💬 <b>Ausgabe:</b> <code>{{completionTokens}} Token</code>\n\n💸 <b>Gesamt:</b> <code>{{totalTokens}} Token</code>",
+  "html.usage": "🗨️ <b>Eingabe:</b> <code>{{promptTokens}} Token</code>\n💬 <b>Ausgabe:</b> <code>{{completionTokens}} Token</code>\n\n💸 <b>Gesamt:</b> <code>{{totalTokens}} Token</code>\n🐷 <b>Saldo:</b> <code>{{balance}} Token</code>",
   "html.rename": "✨ Gespräch umbenannt:"
 }

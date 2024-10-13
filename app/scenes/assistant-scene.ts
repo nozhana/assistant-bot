@@ -177,7 +177,13 @@ assistantScene.action(/asst\.([^.]+)\.del/g, async (ctx) => {
 assistantScene.action(/asst\.([^.]+)\.chat/g, async (ctx) => {
   const id = ctx.match[1];
   const { prisma } = ctx;
-  const assistant = await prisma.assistant.findUniqueOrThrow({ where: { id } });
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: ctx.from.id },
+  });
+  if (!user.balance || user.balance <= 0)
+    return ctx.answerCbQuery(ctx.t("chat:cb.balance.low"), {
+      show_alert: true,
+    });
   const conversation = await prisma.conversation.create({
     data: { userId: ctx.from.id, assistantId: id },
   });

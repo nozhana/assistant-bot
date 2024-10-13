@@ -16,6 +16,7 @@ datasource db {
 model User {
   id                Int            @id @map("_id")
   firstName         String
+  balance           Int            @default(0)
   assistants        Assistant[]
   conversations     Conversation[]
   messages          Message[]

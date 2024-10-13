@@ -11,12 +11,14 @@ import { PrismaClient } from "@prisma/client";
 import BotSceneSession from "./scene-session";
 import SessionData from "./session-data";
 import { I18nContext } from "./i18n-middleware";
+import { CryptoPay } from "@foile/crypto-pay-api";
 
 interface BotContext extends I18nContext {
   session: SessionData;
   scene: SceneContextScene<BotContext, BotSceneSession>;
   prisma: PrismaClient;
   openai: OpenAI;
+  pay: CryptoPay;
 }
 
 export default BotContext;

@@ -9,5 +9,6 @@
   "lang.feedback": "Sprache auf 🇩🇪 Deutsch umgestellt.",
   "coming.soon": "👟 Demnächst verfügbar",
   "html.wait": "<i>Bitte warten...</i>",
-  "html.help": "💁 <b>Hilfe</b>\n\n/start | /help — ℹ️ Diese Anleitung anzeigen\n/chat — 💬 Einem Assistenten sprechen\n/assistants — 🤖 Assistenten verwalten\n/settings — ⚙️ Einstellungen-Menü"
+  "html.help": "💁 <b>Hilfe</b>\n\n/start | /help — ℹ️ Diese Anleitung anzeigen\n/chat — 💬 Einem Assistenten sprechen\n/assistants — 🤖 Assistenten verwalten\n/settings — ⚙️ Einstellungen-Menü\n/wallet - 🐷 Wallet",
+  "cb.error": "❌ Bei der Bearbeitung Ihrer Anfrage ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
 }

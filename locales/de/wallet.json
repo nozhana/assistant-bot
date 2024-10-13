@@ -1,0 +1,18 @@
+{
+  "lit.token.count_zero": "keine Token",
+  "lit.token.count_one": "{{count}} Token",
+  "lit.token.count_other": "{{count}} Token",
+  "html.wallet": "🐷 <b>Wallet</b>\n\n👋 Hallo, {{user}}.\n<b>Token Saldo:</b> <code>{{count}}</code> Token",
+  "cb.wallet": "🐷 Wallet",
+  "btn.topup": "💳 Aufladen",
+  "btn.gift": "🎁 Geschenk",
+  "cb.topup": "💳 Aufladen",
+  "html.topup": "💳 <b>Laden Sie Ihr Guthaben auf.</b>\n\n👇 <i>Wählen Sie eines der unten angebotenen Tarife aus.\nDu wirst zu einem Krypto-Zahlungs-Gateway weitergeleitet, um deine Bestellung abzuschließen.</i>",
+  "cb.topup.plan": "❇️ Plan",
+  "html.topup.plan": "❇️ <b>Gewählter Plan:</b>\n\n💬 <code>{{count}}</code> Token\n💲 <code>{{price}}</code> USDT\n\n💳 Weiter zum Gateway?",
+  "btn.topup.continue": "Fortfahren 💳",
+  "html.topup.success": "🙏 <b>Ihre Zahlung von <code>{{price}}</code> USDT wurde erfolgreich empfangen.</b>\n\n<b>Erhaltene Token:</b> <code>{{count}}</code>\n<b>Aktueller Saldo:</b> <code>{{balance}}</code> Token",
+  "btn.pay": "Zum Gateway 👉",
+  "cb.topup.pay": "Ihre Zahlung wurde erstellt. Bitte gehen Sie zum Gateway um die Transaktion zu tätigen.",
+  "html.topup.pay": "⏳ <b>Warten auf Zahlung</b>\n\n❇️ <b>Gewählter Plan:</b>\n\n💬 <code>{{count}}</code> Token\n💲 <code>{{price}}</code> USDT"
+}

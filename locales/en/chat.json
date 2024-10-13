@@ -1,5 +1,7 @@
 {
   "cb.chatting": "💬 Chatting",
+  "cb.balance.low": "🫰 Insufficient funds! Please buy tokens to continue chatting.",
+  "html.balance.low": "🫰 <b>Insufficient funds!</b>\n<i>Please buy tokens to continue chatting.</i>\n\nGo to your wallet to top up 👉 /wallet",
   "html.chatting": "You're now talking to <b>{{assistant}}</b>.",
   "btn.leave": "🚫 Leave",
   "html.transcription.failed": "❌ <b>Transcription failed.</b>",
@@ -23,6 +25,6 @@
   "html.google.filter.site.include": "🌐 <i>Only including results from</i>\n<code>{{site}}</code>",
   "html.google.filter.site.exclude": "🚫 <i>Excluding results from</i>\n<code>{{site}}</code>",
   "html.google.done": "🔎 <i>Fetched Google results.</i>",
-  "html.usage": "🗨️ <b>Prompt:</b> <code>{{promptTokens}} tokens</code>\n💬 <b>Completion:</b> <code>{{completionTokens}} tokens</code>\n\n💸 <b>Total:</b> <code>{{totalTokens}} tokens</code>",
+  "html.usage": "🗨️ <b>Prompt:</b> <code>{{promptTokens}} tokens</code>\n💬 <b>Completion:</b> <code>{{completionTokens}} tokens</code>\n\n💸 <b>Total:</b> <code>{{totalTokens}} tokens</code>\n🐷 <b>Balance:</b> <code>{{balance}} tokens</code>",
   "html.rename": "✨ Renamed conversation:"
 }
